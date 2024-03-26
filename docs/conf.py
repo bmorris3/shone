@@ -23,17 +23,20 @@ copyright = f"{datetime.datetime.now().year}, {author}"  # noqa: A001
 # extensions coming with Sphinx (named "sphinx.ext.*") or your custom
 # ones.
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.todo",
-    "sphinx.ext.coverage",
-    "sphinx.ext.inheritance_diagram",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",
-    "sphinx.ext.doctest",
-    "sphinx.ext.mathjax",
-    "sphinx_automodapi.automodapi",
-    "sphinx_automodapi.smart_resolver",
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.inheritance_diagram',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.doctest',
+    'sphinx.ext.mathjax',
+    'sphinx_automodapi.automodapi',
+    'sphinx_automodapi.smart_resolver',
+    'sphinx.ext.autosectionlabel',
+    "matplotlib.sphinxext.plot_directive",
+    "numpydoc",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -57,13 +60,13 @@ default_role = 'py:obj'
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"python": ("https://docs.python.org/", None)}
-
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'astropy': ('https://docs.astropy.org/en/stable/', None),
+    'matplotlib': ('http://matplotlib.org/stable', None),
+}
 # -- Options for HTML output -------------------------------------------------
-
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-html_theme = "alabaster"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -80,3 +83,52 @@ html_theme = "alabaster"
 autoclass_content = "both"
 
 # -- Other options ----------------------------------------------------------
+
+github_issues_url = 'https://github.com/bmorris3/shone/issues/'
+
+release = __version__
+dev = "dev" in release
+
+html_copy_source = False
+html_theme = 'sphinx_book_theme'
+
+html_theme_options = {
+    "github_url": "https://github.com/bmorris3/shone",
+    "external_links": [
+    #    {"name": "astropy docs", "url": "https://docs.astropy.org/en/stable/"},
+    ],
+    "use_edit_page_button": True,
+    # "logo_only": True,
+    "use_download_button": True,
+    "repository_url": "https://github.com/bmorris3/shone",
+    "repository_branch": "main",
+    "path_to_docs": "docs",
+}
+
+html_context = {
+    "default_mode": "light",
+    "to_be_indexed": ["stable", "latest"],
+    "is_development": dev,
+    "github_user": "bmorris3",
+    "github_repo": "shone",
+    "github_version": "main",
+    "doc_path": "docs",
+}
+
+html_logo = "logo/logo.png"
+html_favicon = "logo/logo.ico"
+
+autosectionlabel_prefix_document = True
+
+numpydoc_show_class_members = False
+autodoc_inherit_docstrings = True
+
+# The name for this set of Sphinx documents.  If None, it defaults to
+# "<project> v<release> documentation".
+html_title = '{0}'.format(project)
+
+# Output file base name for HTML help builder.
+htmlhelp_basename = project + 'doc'
+
+# Prefixes that are ignored for sorting the Python module index
+modindex_common_prefix = ["fleck."]

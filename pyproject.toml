@@ -21,11 +21,24 @@ dynamic = ["version"]
 test = [
     "pytest",
     "pytest-doctestplus",
-    "pytest-cov"
+    "pytest-cov",
+    'pytest >=4.6.0',
+    'pytest-astropy',
 ]
 docs = [
     "sphinx",
     "sphinx-automodapi",
+    "tomli; python_version <\"3.11\"",
+    "sphinx-astropy[confv2]",
+    "sphinx-toolbox",
+    "matplotlib",
+    "expecto",
+    "sphinx-book-theme",
+]
+jax = [
+    "jax[cpu]",
+    "jaxoplanet",
+    "specutils"
 ]
 
 [project.urls]

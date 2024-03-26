@@ -1,15 +1,11 @@
-shone Documentation
--------------------
+*****
+shone
+*****
 
-This is the documentation for shone.
+Fast radiative transfer in JAX.
+
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+  :maxdepth: 2
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+  shone/installation.rst

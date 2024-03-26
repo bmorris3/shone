@@ -1,0 +1,6 @@
+.idea/
+dist/
+*.egg*
+*/version.py
+.tmp/
+.tox/
