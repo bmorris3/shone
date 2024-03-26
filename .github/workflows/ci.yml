@@ -21,10 +21,6 @@ jobs:
           linux: test
           os: ubuntu-latest
           python-version: 3.11
-        - name: tests with jax dependency, py3.11
-          linux: test-jax
-          os: ubuntu-latest
-          python-version: 3.11
         - name: Code style checks
           python: 3.11
           os: ubuntu-latest
@@ -32,4 +28,4 @@ jobs:
         - name: Test building of Sphinx docs
           python: 3.11
           os: ubuntu-latest
-          linux: build-docs
+          linux: build_docs

@@ -4,3 +4,5 @@ dist/
 */version.py
 .tmp/
 .tox/
+*.DS_Store
+docs/_build
