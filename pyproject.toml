@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 name = "shone"
 description = "Radiative transfer in JAX"
 requires-python = ">=3.11"
-readme = { file = "README.rst", content-type = "text/x-rst" }
+readme = { file = "README.md", content-type = "text/x-rst" }
 license = { file = "licenses/LICENSE.rst", content-type = "text/plain" }
 authors = [
   { name = "Brett M. Morris, Jens Hoeijmakers", email = "morrisbrettm@gmail.com" },
