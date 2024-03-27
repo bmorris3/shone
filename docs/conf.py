@@ -94,11 +94,7 @@ html_theme = 'sphinx_book_theme'
 
 html_theme_options = {
     "github_url": "https://github.com/bmorris3/shone",
-    "external_links": [
-    #    {"name": "astropy docs", "url": "https://docs.astropy.org/en/stable/"},
-    ],
     "use_edit_page_button": True,
-    # "logo_only": True,
     "use_download_button": True,
     "repository_url": "https://github.com/bmorris3/shone",
     "repository_branch": "main",
