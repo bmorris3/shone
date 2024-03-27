@@ -9,3 +9,4 @@ Fast radiative transfer in JAX.
   :maxdepth: 2
 
   shone/installation.rst
+  shone/dev.rst
