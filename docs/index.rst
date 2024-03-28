@@ -10,3 +10,4 @@ Fast radiative transfer in JAX.
 
   shone/installation.rst
   shone/dev.rst
+  shone/index.rst
