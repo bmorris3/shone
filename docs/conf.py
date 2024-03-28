@@ -109,6 +109,8 @@ html_context = {
     "github_repo": "shone",
     "github_version": "main",
     "doc_path": "docs",
+    "display_github": True,
+    "conf_py_path": "docs/",
 }
 
 html_logo = "logo/logo.png"
