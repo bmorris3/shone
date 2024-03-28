@@ -18,6 +18,7 @@ dependencies = [
     "jax[cpu]",
     "jaxoplanet",
     "specutils",
+    "periodictable"
 ]
 dynamic = ["version"]
 

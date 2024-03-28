@@ -3,4 +3,4 @@ try:
 except ImportError:
     __version__ = ''
 
-__all__ = []
+from .chemistry import *  # noqa
