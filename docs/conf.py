@@ -127,4 +127,6 @@ html_title = '{0}'.format(project)
 htmlhelp_basename = project + 'doc'
 
 # Prefixes that are ignored for sorting the Python module index
-modindex_common_prefix = ["fleck."]
+modindex_common_prefix = ["shone."]
+
+suppress_warnings = ['autosectionlabel.*']

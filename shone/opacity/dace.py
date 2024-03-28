@@ -300,8 +300,20 @@ def download_molecule(
         For example, "1H2-16O" for water.
     molecule_name : str
         Common name for the molecule, for example: "H2O"
-    line_list : str
-        For example, "POKAZATEL" for water.
+    line_list : str, default is ``'first-found'``, optional
+        For example, "POKAZATEL" for water. By default, the first available
+        line list for this isotopologue is chosen.
+    temperature_range : tuple, optional
+        Tuple of integers specifying the min and max
+        temperature requested. Defaults to the full
+        range of available temperatures.
+    pressure_range : tuple, optional
+        Tuple of floags specifying the log base 10 of the
+        min and max pressure [bar] requested. Defaults to the full
+        range of available pressures.
+    version : float, optional
+        Version number of the line list in DACE. Defaults to the
+        latest version.
     """
     if molecule_name is not None:
         isotopologue = species_name_to_common_isotopologue_name(molecule_name)
@@ -364,8 +376,20 @@ def download_atom(atom, charge, line_list='first-found',
         For example, "Na" for sodium.
     charge : int
         For example, 0 for neutral.
-    line_list : str
-        For example, "Kurucz".
+    line_list : str, default is ``'first-found'``, optional
+        For example, "Kurucz". By default, the first available
+        line list for this atom/charge is chosen.
+    temperature_range : tuple, optional
+        Tuple of integers specifying the min and max
+        temperature requested. Defaults to the full
+        range of available temperatures.
+    pressure_range : tuple, optional
+        Tuple of floags specifying the log base 10 of the
+        min and max pressure [bar] requested. Defaults to the full
+        range of available pressures.
+    version : float, optional
+        Version number of the line list in DACE. Defaults to the
+        latest version.
     """
     available_line_lists = available_opacities.get_atomic_line_lists(atom)
 
