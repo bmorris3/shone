@@ -10,6 +10,7 @@ import xarray as xr
 from astropy.table import Table
 from dace_query.opacity import Molecule, Atom
 
+from ..chemistry import species_name_to_common_isotopologue_name
 
 interp_kwargs = dict(
     method='nearest',
@@ -252,7 +253,13 @@ def clean_up(bin_dir, archive_name):
     shutil.rmtree(bin_dir)
 
 
-def download_molecule(isotopologue, line_list, temperature_range=None, pressure_range=None):
+def download_molecule(
+    isotopologue=None,
+    molecule_name=None,
+    line_list=None,
+    temperature_range=None,
+    pressure_range=None
+):
     """
     Download molecular opacity data from DACE.
 
@@ -264,9 +271,14 @@ def download_molecule(isotopologue, line_list, temperature_range=None, pressure_
     ----------
     isotopologue : str
         For example, "1H2-16O" for water.
+    molecule_name : str
+        Common name for the molecule, for example: "H2O"
     line_list : str
         For example, "POKAZATEL" for water.
     """
+    if molecule_name is not None:
+        isotopologue = species_name_to_common_isotopologue_name(molecule_name)
+
     if temperature_range is None or pressure_range is None:
         dace_temp_range, dace_press_range = available_opacities.get_molecular_pT_range(
             isotopologue, line_list
