@@ -1,3 +1,4 @@
+import warnings
 from functools import cached_property
 import os
 import tarfile
@@ -48,8 +49,8 @@ class AvailableOpacities:
     def get_atomic_pT_range(self, atom, charge, line_list):
         table = self.get_atomic_database_entry(atom, charge, line_list)
         temperature_range = (
-            float(table['temp_min_k'][0]),
-            float(table['temp_max_k'][0])
+            int(table['temp_min_k'][0]),
+            int(table['temp_max_k'][0])
         )
         pressure_range = (
             float(table['pressure_min_exponent_b'][0]),
@@ -60,8 +61,8 @@ class AvailableOpacities:
     def get_molecular_pT_range(self, isotopologue, line_list):
         table = self.get_molecular_database_entry(isotopologue, line_list)
         temperature_range = (
-            float(table['temp_min_k'][0]),
-            float(table['temp_max_k'][0])
+            int(table['temp_min_k'][0]),
+            int(table['temp_max_k'][0])
         )
         pressure_range = (
             float(table['pressure_min_exponent_b'][0]),
@@ -136,7 +137,7 @@ def untar_bin_files(archive_name):
             if os.path.splitext(tarinfo.name)[1] == ".bin":
                 yield tarinfo
 
-    with tarfile.open(archive_name, 'r:gz') as tar:
+    with tarfile.open(archive_name, 'r') as tar:
         tar.extractall(path='tmp/.', members=bin_files(tar))
 
 
@@ -166,8 +167,12 @@ def opacity_dir_to_netcdf(opacity_dir, outpath):
             wl_end = int(filename.split('_')[2])
             wlen = np.arange(wl_start, wl_end, 0.01)
 
-            # Convert to micron
-            wavelength = 1 / wlen / 1e-4
+            # catch divide by zero warning here:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', RuntimeWarning)
+
+                # Convert to micron
+                wavelength = 1 / wlen / 1e-4
 
             unique_wavelengths = wavelength[1:][::-1]
             temperature_grid.append(temperature)
@@ -247,7 +252,7 @@ def clean_up(bin_dir, archive_name):
     shutil.rmtree(bin_dir)
 
 
-def download_molecule(isotopologue, line_list):
+def download_molecule(isotopologue, line_list, temperature_range=None, pressure_range=None):
     """
     Download molecular opacity data from DACE.
 
@@ -262,8 +267,20 @@ def download_molecule(isotopologue, line_list):
     line_list : str
         For example, "POKAZATEL" for water.
     """
-    temperature_range, pressure_range = available_opacities.get_molecular_pT_range(isotopologue, line_list)
-    archive_name = dace_download_molecule(isotopologue, line_list, temperature_range, pressure_range)
+    if temperature_range is None or pressure_range is None:
+        dace_temp_range, dace_press_range = available_opacities.get_molecular_pT_range(
+            isotopologue, line_list
+        )
+
+    if temperature_range is None:
+        temperature_range = dace_temp_range
+
+    if pressure_range is None:
+        pressure_range = dace_press_range
+
+    archive_name = dace_download_molecule(
+        isotopologue, line_list, temperature_range, pressure_range
+    )
     untar_bin_files(archive_name)
     bin_dir = get_opacity_dir_path_molecule(
         isotopologue, line_list
@@ -278,7 +295,7 @@ def download_molecule(isotopologue, line_list):
     clean_up(bin_dir, archive_name)
 
 
-def download_atom(atom, charge, line_list):
+def download_atom(atom, charge, line_list, temperature_range=None, pressure_range=None):
     """
     Download atomic opacity data from DACE.
 
@@ -295,9 +312,20 @@ def download_atom(atom, charge, line_list):
     line_list : str
         For example, "Kurucz".
     """
-    temperature_range, pressure_range = available_opacities.get_atomic_pT_range(atom, charge, line_list)
+    if temperature_range is None or pressure_range is None:
+        dace_temp_range, dace_press_range = available_opacities.get_atomic_pT_range(
+            atom, charge, line_list
+        )
 
-    archive_name = dace_download_atom(atom, charge, line_list, temperature_range, pressure_range)
+    if temperature_range is None:
+        temperature_range = dace_temp_range
+
+    if pressure_range is None:
+        pressure_range = dace_press_range
+
+    archive_name = dace_download_atom(
+        atom, charge, line_list, temperature_range, pressure_range
+    )
     untar_bin_files(archive_name)
     bin_dir = get_opacity_dir_path_atom(line_list)
 

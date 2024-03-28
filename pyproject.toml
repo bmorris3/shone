@@ -20,6 +20,7 @@ dependencies = [
     "specutils",
     "periodictable",
     "dace-query",
+    "xarray",
 ]
 dynamic = ["version"]
 
