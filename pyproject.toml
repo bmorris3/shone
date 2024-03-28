@@ -41,6 +41,7 @@ docs = [
     "matplotlib",
     "expecto",
     "sphinx-book-theme",
+    "sphinx-github-style",
 ]
 
 [project.urls]

@@ -28,16 +28,17 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.inheritance_diagram',
-    'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.doctest',
     'sphinx.ext.mathjax',
     'sphinx_automodapi.automodapi',
     'sphinx_automodapi.smart_resolver',
     'sphinx.ext.autosectionlabel',
-    "matplotlib.sphinxext.plot_directive",
-    "numpydoc",
+    'matplotlib.sphinxext.plot_directive',
+    'numpydoc',
+    'sphinx_github_style',
 ]
+
 
 # Add any paths that contain templates here, relative to this directory.
 # templates_path = ["_templates"]
@@ -132,3 +133,9 @@ htmlhelp_basename = project + 'doc'
 modindex_common_prefix = ["shone."]
 
 suppress_warnings = ['autosectionlabel.*']
+
+# Github links:
+
+linkcode_blob = "main"
+linkcode_link_text = "[GitHub]"
+
