@@ -18,7 +18,9 @@ dependencies = [
     "jax[cpu]",
     "jaxoplanet",
     "specutils",
-    "periodictable"
+    "periodictable",
+    "dace-query",
+    "xarray",
 ]
 dynamic = ["version"]
 
@@ -39,6 +41,7 @@ docs = [
     "matplotlib",
     "expecto",
     "sphinx-book-theme",
+    "sphinx-github-style",
 ]
 
 [project.urls]
