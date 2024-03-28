@@ -14,7 +14,11 @@ license = { file = "licenses/LICENSE.rst", content-type = "text/plain" }
 authors = [
   { name = "Brett M. Morris, Jens Hoeijmakers", email = "morrisbrettm@gmail.com" },
 ]
-dependencies = []
+dependencies = [
+    "jax[cpu]",
+    "jaxoplanet",
+    "specutils",
+]
 dynamic = ["version"]
 
 [project.optional-dependencies]
@@ -34,11 +38,6 @@ docs = [
     "matplotlib",
     "expecto",
     "sphinx-book-theme",
-]
-jax = [
-    "jax[cpu]",
-    "jaxoplanet",
-    "specutils"
 ]
 
 [project.urls]
