@@ -1,3 +1,4 @@
+import logging
 import warnings
 from functools import cached_property
 import os
@@ -46,6 +47,31 @@ class AvailableOpacities:
             (table['isotopologue'] == isotopologue) &
             (table['line_list'] == line_list)
         )]
+
+    def get_molecular_line_lists(self, isotopologue):
+        table = self.molecular
+        return set(table[table['isotopologue'] == isotopologue]['line_list'])
+
+    def get_atomic_line_lists(self, atom):
+        table = self.atomic
+        return set(table[table['atom'] == atom]['line_list'])
+
+    def get_atomic_latest_version(self, atom, charge, line_list):
+        table = self.atomic
+        matches = table[(
+            (table['atom'] == atom) &
+            (table['line_list'] == line_list) &
+            (table['charge'] == charge)
+        )]
+        return max(set(matches['version']))
+
+    def get_molecular_latest_version(self, isotopologue, line_list):
+        table = self.molecular
+        matches = table[(
+            (table['isotopologue'] == isotopologue) &
+            (table['line_list'] == line_list)
+        )]
+        return max(set(matches['version']))
 
     def get_atomic_pT_range(self, atom, charge, line_list):
         table = self.get_atomic_database_entry(atom, charge, line_list)
@@ -256,9 +282,10 @@ def clean_up(bin_dir, archive_name):
 def download_molecule(
     isotopologue=None,
     molecule_name=None,
-    line_list=None,
+    line_list='first-found',
     temperature_range=None,
-    pressure_range=None
+    pressure_range=None,
+    version=None,
 ):
     """
     Download molecular opacity data from DACE.
@@ -279,6 +306,21 @@ def download_molecule(
     if molecule_name is not None:
         isotopologue = species_name_to_common_isotopologue_name(molecule_name)
 
+    available_line_lists = available_opacities.get_molecular_line_lists(isotopologue)
+
+    if line_list == 'first-found':
+        line_list = sorted(list(available_line_lists)).pop()
+        logging.warning(f"Using first-found line list for {isotopologue}: '{line_list}'")
+
+    elif line_list not in available_line_lists:
+        raise ValueError(f"The requested '{line_list}' is not in the set of "
+                         f"available line lists {available_line_lists}.")
+
+    if version is None:
+        version = available_opacities.get_molecular_latest_version(isotopologue, line_list)
+        logging.warning(f"Using latest version of the line "
+                        f"list '{line_list}' for {isotopologue}: {version}")
+
     if temperature_range is None or pressure_range is None:
         dace_temp_range, dace_press_range = available_opacities.get_molecular_pT_range(
             isotopologue, line_list
@@ -291,7 +333,7 @@ def download_molecule(
         pressure_range = dace_press_range
 
     archive_name = dace_download_molecule(
-        isotopologue, line_list, temperature_range, pressure_range
+        isotopologue, line_list, temperature_range, pressure_range, version=version
     )
     untar_bin_files(archive_name)
     bin_dir = get_opacity_dir_path_molecule(
@@ -307,7 +349,8 @@ def download_molecule(
     clean_up(bin_dir, archive_name)
 
 
-def download_atom(atom, charge, line_list, temperature_range=None, pressure_range=None):
+def download_atom(atom, charge, line_list='first-found',
+                  temperature_range=None, pressure_range=None, version=None):
     """
     Download atomic opacity data from DACE.
 
@@ -324,10 +367,25 @@ def download_atom(atom, charge, line_list, temperature_range=None, pressure_rang
     line_list : str
         For example, "Kurucz".
     """
+    available_line_lists = available_opacities.get_atomic_line_lists(atom)
+
+    if line_list == 'first-found':
+        line_list = sorted(list(available_line_lists)).pop()
+        logging.warning(f"Using first-found line list for {atom}: '{line_list}'")
+
+    elif line_list not in available_line_lists:
+        raise ValueError(f"The requested '{line_list}' is not in the set of "
+                         f"available line lists {available_line_lists}.")
+
     if temperature_range is None or pressure_range is None:
         dace_temp_range, dace_press_range = available_opacities.get_atomic_pT_range(
             atom, charge, line_list
         )
+
+    if version is None:
+        version = available_opacities.get_atomic_latest_version(atom, charge, line_list)
+        logging.warning(f"Using latest version of the line "
+                        f"list '{line_list}' for {atom}: {version}")
 
     if temperature_range is None:
         temperature_range = dace_temp_range
@@ -336,7 +394,7 @@ def download_atom(atom, charge, line_list, temperature_range=None, pressure_rang
         pressure_range = dace_press_range
 
     archive_name = dace_download_atom(
-        atom, charge, line_list, temperature_range, pressure_range
+        atom, charge, line_list, temperature_range, pressure_range, version=version
     )
     untar_bin_files(archive_name)
     bin_dir = get_opacity_dir_path_atom(line_list)
