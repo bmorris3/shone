@@ -18,7 +18,8 @@ dependencies = [
     "jax[cpu]",
     "jaxoplanet",
     "specutils",
-    "periodictable"
+    "periodictable",
+    "dace-query",
 ]
 dynamic = ["version"]
 
