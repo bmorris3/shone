@@ -1,5 +1,4 @@
 import os
-from tempfile import TemporaryDirectory
 from functools import partial
 from glob import glob
 
@@ -26,12 +25,32 @@ if on_rtd:
 
 
 class Opacity:
+    """
+    Load and interpolate from a pre-computed opacity grid.
+    """
     def __init__(self, path=None, grid=None):
+        """
+        Parameters
+        ----------
+        path : str, path-like
+            File path for an opacity file.
+        grid : `~xarray.DataArray`
+            The DataArray of an already-loaded opacity grid.
+        """
         if path is not None:
             grid = xr.load_dataarray(path)
         self.grid = grid
 
     def get_interpolator(self):
+        """
+        Return a jitted opacity interpolator for any number of
+        wavelength points, and one temperature and pressure.
+
+        Returns
+        -------
+        interp : function
+            A just-in-time compiled opacity interpolator.
+        """
         x_grid_points = (
             jnp.float32(self.grid.temperature.to_numpy()),
             jnp.float32(self.grid.pressure.to_numpy()),
@@ -60,6 +79,20 @@ class Opacity:
 
     @classmethod
     def get_available_species(self, shone_directory=None):
+        """
+        Get a table of available opacity files.
+
+        Parameters
+        ----------
+        shone_directory : str, path-like (optional)
+            Directory containing opacity files.
+
+        Returns
+        -------
+        table : `~astropy.table.Table`
+            Table containing entries for every opacity file
+            available on disk.
+        """
         if shone_directory is None:
             shone_directory = shone_dir
         nc_paths = glob(os.path.join(shone_directory, "*.nc"))
@@ -92,12 +125,32 @@ class Opacity:
 
     @classmethod
     def load_species_from_index(cls, idx):
+        """
+        Load an opacity file from its index listed in the output
+        of `~shone.opacity.Opacity.get_available_species`.
+
+        Parameters
+        ----------
+        idx : int
+            Index of the opacity file to load.
+        """
         species = cls.get_available_species()
         path = species.loc[idx]['path']
         return cls(path=path)
 
     @classmethod
     def load_species_from_name(cls, name):
+        """
+        Load an opacity file from its name listed in the output
+        of `~shone.opacity.Opacity.get_available_species`.
+
+        Parameters
+        ----------
+        name : str
+            Name of the opacity file to load. Since the "name" entry
+            isn't guaranteed to be unique, an error is raised
+            if more than one file is available by this name.
+        """
         species = cls.get_available_species()
         table_row = species[species['name'] == name]
         print(table_row)
@@ -109,6 +162,15 @@ class Opacity:
 
 
 def generate_synthetic_opacity(filename='synthetic__example.nc'):
+    """
+    Construct a netCDF file containing a synthetic opacity grid.
+    Useful for examples in the tests and documentation.
+
+    Parameters
+    ----------
+    filename : str, path-like (optional)
+        File name.
+    """
     np.random.seed(42)
 
     temperature = np.arange(200, 1200, 200)

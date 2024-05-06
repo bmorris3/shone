@@ -10,6 +10,10 @@ k_B = 1.380649e-16  # erg / K
 
 def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
     """
+    Compute the radius spectrum for planet observed in transmission
+    with an isothermal atmosphere.
+
+    Uses the simple approximation from Heng & Kitzmann (2017) [1]_.
 
     Parameters
     ----------
@@ -31,6 +35,11 @@ def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
     -------
     transmission_radius : array-like
         Transmission radius [cm] as a function of wavelength.
+
+    References
+    ----------
+    .. [1] `Heng & Kitzmann (2017)
+            <https://ui.adsabs.harvard.edu/abs/2017MNRAS.470.2972H/abstract>`_.
     """
     gamma = 0.57721  # Euler-Mascheroni constant
     H = k_B * T_0 / (mmw * g)  # pressure scale height

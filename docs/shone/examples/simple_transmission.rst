@@ -16,7 +16,7 @@ one atmospheric species in the near-infrared.
 .. code-block:: python
 
     import numpy as np
-    from jax import numpy as jnp
+    from jax import numpy as jnp, jit
     import matplotlib.pyplot as plt
     
     import astropy.units as u
@@ -26,15 +26,16 @@ one atmospheric species in the near-infrared.
     from shone.transmission import transmission_radius_isothermal
 
 For each species to include in the atmosphere, you need to download an
-opacity grid for that species. For this example, we’ll use a synthetic
-opacity grid.
+opacity grid for that species. We load and interpolate opacity grids using
+the `~shone.opacity.Opacity` class. For this example, we’ll use a synthetic
+opacity grid, generated with by function:
 
 .. code-block:: python
 
     generate_synthetic_opacity()
 
 We can check which species are already chached and available on your
-machine:
+machine using `~shone.opacity.Opacity.get_available_species()`:
 
 .. code-block:: python
 
@@ -51,7 +52,7 @@ machine:
     </table></div><br /><br />
 
 
-Let’s load the ``synthetic`` opacity file that we created above:
+Let’s load the opacity file named "synthetic" that we created above:
 
 .. code-block:: python
 
@@ -62,7 +63,7 @@ Interpolating opacities
 -----------------------
 
 Now we will create a just-in-time compiled opacity interpolator.
-``Opacity.get_interpolator`` returns a *function* that takes three
+`~shone.opacity.Opacity.get_interpolator` returns a *function* that takes three
 arguments – a wavelength array [µm], a temperature [K], and a pressure
 [bar] – and returns an array of opacities for each wavelength:
 
@@ -125,14 +126,13 @@ Now let’s specify an opacity for a gray cloud:
 Suppose we want to compute transmission spectra for several atmospheric
 temperatures. The function ``interp_opacity`` does not take vector
 arguments for temperature or pressure, but we can easily vectorize it
-with ``jax.vmap`` like this:
+with `~jax.vmap` like this:
 
 .. code-block:: python
 
     # interpolate for a range of wavelengths at one pressure and temperature:
-    from jax import vmap
-    
     temperature = np.array([200, 400, 600, 800])
+
     example_opacity = vmap(
         lambda temp: interp_opacity(wavelength, temp, pressure)
     )(temperature)
@@ -190,14 +190,15 @@ Compute a transmission spectrum
 -------------------------------
 
 We can compute a transmission spectrum for an Earth-sized planet
-transiting a Sun-like star like so:
+transiting a Sun-like star using
+`~shone.transmission.transmission_radius_isothermal`:
 
 .. code-block:: python
 
     R_0 = 1 * u.R_earth  # reference radius
     P_0 = 1 * u.bar  # reference pressure
-    T_0 = 270 * u.K  # reference temperature
-    mmw = 1 * m_p  # mean molecular weight (AMU)
+    T_0 = 290 * u.K  # reference temperature
+    mmw = 28 * m_p  # mean molecular weight (AMU)
     g = 9.8 * u.m / u.s**2  # surface gravity
     
     # convert the arguments from astropy `Quantity`s to 
@@ -211,6 +212,8 @@ transiting a Sun-like star like so:
     # convert to transit depth:
     Rstar = (1 * u.R_sun).cgs.value
     transit_depth_ppm = 1e6 * (Rp / Rstar) ** 2
+
+Now let's plot the result:
 
 .. code-block:: python
 
@@ -257,8 +260,8 @@ transiting a Sun-like star like so:
 
     R_0 = 1 * u.R_earth  # reference radius
     P_0 = 1 * u.bar  # reference pressure
-    T_0 = 270 * u.K  # reference temperature
-    mmw = 1 * m_p  # mean molecular weight (AMU)
+    T_0 = 290 * u.K  # reference temperature
+    mmw = 28 * m_p  # mean molecular weight (AMU)
     g = 9.8 * u.m / u.s**2  # surface gravity
 
     # convert the arguments from astropy `Quantity`s to
