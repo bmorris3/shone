@@ -34,11 +34,15 @@ class Opacity:
         ----------
         path : str, path-like
             File path for an opacity file.
-        grid : `~xarray.DataArray`
-            The DataArray of an already-loaded opacity grid.
+        grid : `~xarray.Dataset`
+            The Dataset of an already-loaded opacity grid.
         """
         if path is not None:
-            grid = xr.load_dataarray(path)
+            grid = xr.load_dataset(path).opacity
+
+        if isinstance(grid, xr.Dataset):
+            grid = grid.opacity
+
         self.grid = grid
 
     def get_interpolator(self):
@@ -153,7 +157,6 @@ class Opacity:
         """
         species = cls.get_available_species()
         table_row = species[species['name'] == name]
-        print(table_row)
 
         if len(table_row) > 1:
             raise ValueError(f"More than one of the available files has "
@@ -171,6 +174,10 @@ def generate_synthetic_opacity(filename='synthetic__example.nc'):
     filename : str, path-like (optional)
         File name.
     """
+    output_path = os.path.join(shone_dir, filename)
+    if os.path.exists(output_path):
+        return Opacity(path=output_path)
+
     np.random.seed(42)
 
     temperature = np.arange(200, 1200, 200)
@@ -203,4 +210,6 @@ def generate_synthetic_opacity(filename='synthetic__example.nc'):
     if not filename.endswith('.nc'):
         filename += '.nc'
 
-    example_opacity.to_netcdf(os.path.join(shone_dir, filename))
+    example_opacity.to_netcdf(output_path)
+
+    return Opacity(grid=example_opacity)

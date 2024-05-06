@@ -4,8 +4,8 @@
 Opacities
 *********
 
-Downloading opacities
----------------------
+Download opacities
+------------------
 
 Several helper methods are included in ``shone`` for downloading and archiving
 local copies of opacities stored on `DACE <https://dace.unige.ch/>`_ via
@@ -54,3 +54,214 @@ or for a specific isotopologue:
 
 These methods download the opacity grids from DACE, and store them in a netCDF file
 in your home directory with the name ``.shone/``.
+
+Example opacity file
+--------------------
+
+It is often useful to have a small, synthetic opacity file for simple demos and testing.
+You can generate one with `~shone.opacity.generate_synthetic_opacity()`:
+
+.. code-block:: python
+
+    from shone.opacity import generate_synthetic_opacity
+
+    opacity = generate_synthetic_opacity()
+
+You can also lookup and load opacities within the cache like so:
+
+.. code-block:: python
+
+    from shone.opacity import Opacity
+
+    # load the one opacity file:
+    opacity = Opacity.load_species_from_name('synthetic')
+
+Opening opacities
+-----------------
+
+Opacities are loaded and interpolated with the `~shone.opacity.Opacity` class.
+
+.. code-block:: python
+
+    from shone.opacity import Opacity
+
+We can check which species are already chached and available on your
+machine using `~shone.opacity.Opacity.get_available_species()`:
+
+.. code-block:: python
+
+    Opacity.get_available_species()
+
+This will return a table of available opacity grids on disk.
+
+Let's load the opacity created by `~shone.opacity.generate_synthetic_opacity()`
+(see the step above):
+
+.. code-block:: python
+
+    opacity = Opacity.load_species_from_name('synthetic')
+
+The `~shone.opacity.Opacity` object contains the opacity grid as a `~xarray.DataArray`
+in its `grid` attribute. You can see the dimensions of the grid with:
+
+.. code-block:: python
+
+    >>> print(opacity.grid.coords)
+    Coordinates:
+      * wavelength   (wavelength) float64 0.5 0.5012 0.5023 ... 4.977 4.988 5.0
+      * temperature  (temperature) int32 200 400 600 800 1000
+      * pressure     (pressure) float64 1e-06 10.0
+
+The coordinates in the `~xarray.DataArray` are wavelength in microns,
+temperature in K, and pressure in bar. To learn to use the xarray API
+directly on the grid attribute, refer to the xarray docs on `indexing
+and selecting data <https://docs.xarray.dev/en/stable/user-guide/indexing.html>`_
+and `interpolating
+<https://docs.xarray.dev/en/stable/user-guide/interpolation.html>`_.
+
+You can inspect the opacities from one temperature and pressure slice like so:
+
+.. code-block:: python
+
+    import matplotlib.pyplot as plt
+
+    opacity_sample = opacity.grid.sel(
+        dict(
+            pressure=10,  # [bar]
+            temperature=200  # [K]
+        )
+    )
+
+    plt.semilogy(
+        opacity_sample.wavelength, opacity_sample.opacity,
+        label=f"T={opacity_sample.temperature} K"
+    )
+    plt.gca().set(
+        xlabel='Wavelength [µm]',
+        ylabel='Opacity, $\kappa$ [cm$^2$ g$^{-1}$]'
+    )
+
+.. plot::
+
+    import matplotlib.pyplot as plt
+    from shone.opacity import Opacity, generate_synthetic_opacity
+
+    opacity = generate_synthetic_opacity()
+    opacity_sample = opacity.grid.sel(
+        dict(
+            pressure=10,  # [bar]
+            temperature=200  # [K]
+        )
+    )
+
+    plt.semilogy(
+        opacity_sample.wavelength, opacity_sample,
+        label=f"T={opacity_sample.temperature} K"
+    )
+    plt.gca().set(
+        xlabel='Wavelength [µm]',
+        ylabel='Opacity, $\kappa$ [cm$^2$ g$^{-1}$]'
+    )
+
+Interpolating opacities
+-----------------------
+
+Often in ``shone`` we will need to interpolate over the opacity grid within
+compiled code, so we will use a just-in-time compiled interpolator on the
+opacity grid. You can produce a function to do these compiled interpolations
+with `~shone.opacity.Opacity.get_interpolator`:
+
+.. code-block:: python
+
+    # get a jitted 3D interpolator over wavelength, temperature, pressure:
+    interp_opacity = opacity.get_interpolator()
+
+Now you can get the opacity at wavelengths, temperatures, and pressures that weren't on
+the grid:
+
+.. code-block:: python
+
+    wavelength = np.linspace(1, 5, 500)  # [µm]
+    pressure = 0.3  # [bar]
+    temperature = 555  # [K]
+
+    example_opacity = interp_opacity(wavelength, temperature, pressure)
+
+    plt.semilogy(wavelength, example_opacity, label=f"T={temperature} K")
+    plt.legend()
+    plt.gca().set(
+        xlabel='Wavelength [µm]',
+        ylabel='Opacity, $\kappa$ [cm$^2$ g$^{-1}$]'
+    )
+
+.. plot::
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from shone.opacity import Opacity, generate_synthetic_opacity
+
+    opacity = generate_synthetic_opacity()
+
+    # get a jitted 3D interpolator over wavelength, temperature, pressure:
+    interp_opacity = opacity.get_interpolator()
+
+    wavelength = np.linspace(1, 5, 500)  # [µm]
+    pressure = 0.3  # [bar]
+    temperature = 555  # [K]
+
+    example_opacity = interp_opacity(wavelength, temperature, pressure)
+
+    plt.semilogy(wavelength, example_opacity, label=f"T={temperature} K")
+    plt.legend()
+    plt.gca().set(
+        xlabel='Wavelength [µm]',
+        ylabel='Opacity, $\kappa$ [cm$^2$ g$^{-1}$]'
+    )
+
+If you need to interpolate opacities onto several temperatures and pressures, you can
+vectorize ``interp_opacity`` with `~jax.vmap`:
+
+.. code-block:: python
+
+    from jax import numpy as jnp, vmap
+
+    temperatures = jnp.array([222, 333, 444])
+    pressures = jnp.array([0.1, 0.5, 0.9])
+
+    example_opacity = vmap(
+        lambda t, p: interp_opacity(wavelength, t, p)
+    )(temperatures, pressures)
+
+For M wavelengths and N samples in pressure and temperature, the
+output will have the shape (N, M).
+
+Crop an opacity grid
+--------------------
+
+Suppose the full opacity grid covers a wider wavelength range than you
+need for your calculation. You can limit the size of the array that
+gets read into JAX by cropping the opacity grid to the relevant limits
+in wavelength, pressure, and temperature.
+
+The example opacity file above is small compared to real ones, and contains
+this many opacity entries:
+
+.. code-block:: python
+
+    >>> print(opacity.grid.size)
+    10000
+
+To reduce the size of the opacity grid, we crop the opacity grid on
+the wavelength range :math:`1.5 < \lambda < 2.5` µm:
+
+.. code-block:: python
+
+    crop = ((1.5 < opacity.grid.wavelength) & (opacity.grid.wavelength < 2.5))
+    opacity.grid = opacity.grid.isel(wavelength=crop)
+
+and we can see the reduction in size:
+
+.. code-block:: python
+
+    print(opacity.grid.size)
+    2220

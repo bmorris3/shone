@@ -1,3 +1,5 @@
+.. _simple_transmission_spectrum:
+
 Simple transmission spectrum
 ============================
 
@@ -9,6 +11,12 @@ add a gray cloud opacity, and compute a transmission spectrum.
 
 Load opacity
 ------------
+
+.. note::
+
+    This example uses a synthetic opacity file that is totally made up.
+    To download real opacity grids, see :ref:`opacities`.
+
 
 Let’s synthesize a transmission spectrum for an Earth-sized planet with
 one atmospheric species in the near-infrared.
@@ -47,7 +55,6 @@ machine using `~shone.opacity.Opacity.get_available_species()`:
     <br /><div><i>Table length=9</i>
     <table id="table11585383056" class="table-striped table-bordered table-condensed">
     <thead><tr><th>name</th><th>species</th><th>charge</th><th>line_list</th><th>path</th><th>index</th></tr></thead>
-    <thead><tr><th>str9</th><th>str9</th><th>int64</th><th>str9</th><th>str45</th><th>int64</th></tr></thead>
     <tr><td>synthetic</td><td>synthetic</td><td>--</td><td>example</td><td>/Users/bmmorris/.shone/synthetic__example.nc</td><td>0</td></tr>
     </table></div><br /><br />
 
@@ -56,8 +63,9 @@ Let’s load the opacity file named "synthetic" that we created above:
 
 .. code-block:: python
 
-    # load the one opacity file:
+    # load the synthetic opacity file:
     opacity = Opacity.load_species_from_name('synthetic')
+
 
 Interpolating opacities
 -----------------------

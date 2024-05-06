@@ -1,11 +1,12 @@
 from jax import numpy as jnp
+from astropy.constants import m_p, k_B
 
 __all__ = ['transmission_radius_isothermal']
 
 
 # constants in cgs:
-m_p = 1.67262192369e-24  # g
-k_B = 1.380649e-16  # erg / K
+m_p = m_p.cgs.value
+k_B = k_B.cgs.value
 
 
 def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
