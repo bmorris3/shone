@@ -1,4 +1,5 @@
 import os
+from tempfile import TemporaryDirectory
 from functools import partial
 from glob import glob
 
@@ -15,7 +16,12 @@ from shone.chemistry import isotopologue_to_species
 __all__ = ['Opacity', 'generate_synthetic_opacity']
 
 
+on_rtd = os.getenv('READTHEDOCS', False)
+
 shone_dir = os.path.expanduser(os.path.join("~", ".shone"))
+
+if on_rtd:
+    shone_dir = TemporaryDirectory().name
 
 
 class Opacity:
