@@ -10,5 +10,6 @@ Fast radiative transfer in JAX.
 
   shone/installation.rst
   shone/opacities.rst
+  shone/examples.rst
   shone/dev.rst
   shone/api.rst

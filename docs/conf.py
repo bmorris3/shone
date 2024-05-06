@@ -202,3 +202,5 @@ def linkcode_resolve(domain, info):
     else:
         return "https://github.com/bmorris3/shone/blob/v%s/shone/%s%s" % (
            shone.__version__, fn, linespec)
+
+plot_formats = [('png', 200)]

@@ -169,7 +169,10 @@ def untar_bin_files(archive_name):
 
 
 def get_opacity_dir_path_molecule(isotopologue, linelist):
-    return glob(os.path.join('tmp', isotopologue + '__' + linelist + "*e2b"))[0]
+    find_e2b = glob(os.path.join('tmp', isotopologue + '__' + linelist + "*e2b"))
+    if len(find_e2b):
+        return find_e2b[0]
+    return glob(os.path.join('tmp', isotopologue + '__' + linelist + "*"))[0]
 
 
 def get_opacity_dir_path_atom(linelist):
