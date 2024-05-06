@@ -21,7 +21,8 @@ on_rtd = os.getenv('READTHEDOCS', False)
 shone_dir = os.path.expanduser(os.path.join("~", ".shone"))
 
 if on_rtd:
-    shone_dir = TemporaryDirectory().name
+    # use a temporary directory on readthedocs:
+    shone_dir = os.path.abspath('./.')
 
 
 class Opacity:
