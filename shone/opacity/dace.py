@@ -229,7 +229,9 @@ def opacity_dir_to_netcdf(opacity_dir, outpath, **kwargs):
             pressure_grid.append(pressure)
 
     if unique_wavelengths is None:
-        raise ValueError(f"No binary opacity files found in {opacity_dir}.")
+        raise ValueError(f"No binary opacity files found in {opacity_dir}. This may "
+                         f"occur when you query for a temperature or pressure range "
+                         f"that has no samples in the grid.")
 
     tgrid = np.sort(list(set(temperature_grid)))
     pgrid = np.sort(list(set(pressure_grid)))
@@ -290,13 +292,13 @@ def opacity_dir_to_netcdf(opacity_dir, outpath, **kwargs):
             temperature=(["temperature"], tgrid),
             pressure=(["pressure"], pgrid),
             wavelength=unique_wavelengths
-        )
+        ),
+        attrs=kwargs
     )
 
     if not os.path.exists(os.path.dirname(outpath)):
         os.makedirs(os.path.dirname(outpath), exist_ok=True)
 
-    ds.attrs.update(kwargs)
     ds.to_netcdf(outpath if outpath.endswith(".nc") else outpath + '.nc',
                  encoding={'opacity': {'dtype': 'float32'}})
 
@@ -534,5 +536,14 @@ def download_atom(atom, charge, line_list='first-found',
         pressure_range,
         version
     )
-    opacity_dir_to_netcdf(bin_dir, nc_path)
+    opacity_dir_to_netcdf(
+        bin_dir.split('.tar.gz')[0], nc_path,
+        atom=atom,
+        charge=charge,
+        line_list=line_list,
+        temperature_range=temperature_range,
+        pressure_range=pressure_range,
+        version=version,
+        created=datetime.now().isoformat()
+    )
     clean_up(bin_dir, archive_name)

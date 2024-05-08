@@ -37,10 +37,12 @@ class Opacity:
             The Dataset of an already-loaded opacity grid.
         """
         if path is not None:
-            grid = xr.load_dataset(path).opacity
+            with xr.open_dataset(path) as ds:
+                attrs = ds.attrs
+                grid = ds.opacity.assign_attrs(attrs)
 
         if isinstance(grid, xr.Dataset):
-            grid = grid.opacity
+            grid = grid.opacity.assign_attrs(grid.attrs)
 
         self.grid = grid
 
@@ -215,6 +217,8 @@ def generate_synthetic_opacity(filename='synthetic__example.nc'):
     kappa = np.power(10, (temperature[:, None, None] / 200) ** 0.7 *
                      kappa[None, None, :]) * pressure_dim
 
+    description = "Example opacity grid for shone demos."
+
     example_opacity = xr.Dataset(
         data_vars=dict(
             opacity=(["temperature", "pressure", "wavelength"],
@@ -224,11 +228,9 @@ def generate_synthetic_opacity(filename='synthetic__example.nc'):
             temperature=temperature,
             pressure=pressure,
             wavelength=wavelength
-        )
+        ),
+        attrs=dict(description=description)
     )
-
-    description = "Example opacity grid for shone demos."
-    example_opacity.attrs['description'] = description
 
     if not filename.endswith('.nc'):
         filename += '.nc'
