@@ -5,13 +5,14 @@ import os
 import tarfile
 import shutil
 from glob import glob
+from datetime import datetime
 
 import numpy as np
 import xarray as xr
 from astropy.table import Table
 from dace_query.opacity import Molecule, Atom
 
-from ..chemistry import species_name_to_common_isotopologue_name
+from shone.chemistry import species_name_to_common_isotopologue_name
 
 interp_kwargs = dict(
     method='nearest',
@@ -165,23 +166,42 @@ def untar_bin_files(archive_name):
                 yield tarinfo
 
     with tarfile.open(archive_name, 'r') as tar:
-        tar.extractall(path='tmp/.', members=bin_files(tar))
+        subdir = archive_name.split('.tar.gz')[0]
+        tar.extractall(path=subdir, members=bin_files(tar))
 
 
 def get_opacity_dir_path_molecule(isotopologue, linelist):
+    if not os.path.exists('tmp'):
+        raise ValueError("Expected a temporary opacity directory, none found.")
+
     find_e2b = glob(os.path.join('tmp', isotopologue + '__' + linelist + "*e2b"))
     if len(find_e2b):
         return find_e2b[0]
-    return glob(os.path.join('tmp', isotopologue + '__' + linelist + "*"))[0]
+    find = glob(os.path.join('tmp', isotopologue + '__' + linelist + "*"))
+    if len(find):
+        return find[0]
+    raise ValueError(f"No opacities found for {isotopologue} "
+                     f"(line list = {linelist}.")
 
 
-def get_opacity_dir_path_atom(linelist):
-    return glob(os.path.join('tmp', linelist + "*e2b"))[0]
+def get_opacity_dir_path_atom(atom, linelist):
+    if not os.path.exists('tmp'):
+        raise ValueError("Expected a temporary opacity directory, none found.")
+
+    find_e2b = glob(os.path.join('tmp', atom + '__' + linelist + "*e2b"))
+    if len(find_e2b):
+        return find_e2b[0]
+    find = glob(os.path.join('tmp', atom + '__' + linelist + "*"))
+    if len(find):
+        return find[0]
+    raise ValueError(f"No opacities found for {atom} "
+                     f"(line list = {linelist}.")
 
 
-def opacity_dir_to_netcdf(opacity_dir, outpath):
+def opacity_dir_to_netcdf(opacity_dir, outpath, **kwargs):
     temperature_grid = []
     pressure_grid = []
+    unique_wavelengths = None
 
     for dirpath, dirnames, filenames in os.walk(opacity_dir):
         for filename in filenames:
@@ -207,6 +227,9 @@ def opacity_dir_to_netcdf(opacity_dir, outpath):
             unique_wavelengths = wavelength[1:][::-1]
             temperature_grid.append(temperature)
             pressure_grid.append(pressure)
+
+    if unique_wavelengths is None:
+        raise ValueError(f"No binary opacity files found in {opacity_dir}.")
 
     tgrid = np.sort(list(set(temperature_grid)))
     pgrid = np.sort(list(set(pressure_grid)))
@@ -273,13 +296,15 @@ def opacity_dir_to_netcdf(opacity_dir, outpath):
     if not os.path.exists(os.path.dirname(outpath)):
         os.makedirs(os.path.dirname(outpath), exist_ok=True)
 
+    ds.attrs.update(kwargs)
     ds.to_netcdf(outpath if outpath.endswith(".nc") else outpath + '.nc',
                  encoding={'opacity': {'dtype': 'float32'}})
 
 
 def clean_up(bin_dir, archive_name):
     os.remove(archive_name)
-    shutil.rmtree(bin_dir)
+    if os.path.exists(bin_dir):
+        shutil.rmtree(bin_dir)
 
 
 def download_molecule(
@@ -311,7 +336,7 @@ def download_molecule(
         temperature requested. Defaults to the full
         range of available temperatures.
     pressure_range : tuple, optional
-        Tuple of floags specifying the log base 10 of the
+        Tuple of floats specifying the log base 10 of the
         min and max pressure [bar] requested. Defaults to the full
         range of available pressures.
     version : float, optional
@@ -355,13 +380,88 @@ def download_molecule(
         isotopologue, line_list
     )
 
-    nc_path = os.path.join(
-        os.path.expanduser('~'),
-        '.shone',
-        isotopologue + '__' + line_list + '.nc'
+    nc_path = create_nc_path_molecule(
+        isotopologue,
+        line_list,
+        temperature_range,
+        pressure_range,
+        version
     )
-    opacity_dir_to_netcdf(bin_dir, nc_path)
-    clean_up(bin_dir, archive_name)
+    opacity_dir_to_netcdf(
+        bin_dir.split('.tar.gz')[0], nc_path,
+        isotopologue=isotopologue,
+        molecule_name=molecule_name,
+        line_list=line_list,
+        temperature_range=temperature_range,
+        pressure_range=pressure_range,
+        version=version,
+        created=datetime.now().isoformat()
+    )
+    clean_up(bin_dir.split('.tar.gz')[0], archive_name)
+
+
+def create_nc_path_molecule(
+    isotopologue,
+    line_list,
+    temperature_range,
+    pressure_range,
+    version
+):
+    filename = (
+        f"{isotopologue}_{line_list}_{temperature_range[0]}_"
+        f"{temperature_range[1]}_{pressure_range[0]}_"
+        f"{pressure_range[1]}_{int(float(version))}.nc"
+    )
+
+    path = os.path.join(os.path.expanduser('~'), '.shone', filename)
+    return path
+
+
+def parse_nc_path_molecule(filename):
+    basename = os.path.basename(filename).split('.nc')[0]
+    (
+        isotopologue, line_list, temp_min, temp_max,
+        press_min, press_max, version
+    ) = basename.split('_')
+
+    temperature_range = [float(temp_min), float(temp_max)]
+    pressure_range = [float(press_min), float(press_max)]
+    version = int(float(version))
+
+    return isotopologue, line_list, temperature_range, pressure_range, version
+
+
+def create_nc_path_atom(
+    atom,
+    charge,
+    line_list,
+    temperature_range,
+    pressure_range,
+    version
+):
+    filename = (
+        f"{atom}_{int(charge)}_{line_list}_{temperature_range[0]}_"
+        f"{temperature_range[1]}_{pressure_range[0]}_"
+        f"{pressure_range[1]}_{int(float(version))}.nc"
+    )
+
+    path = os.path.join(os.path.expanduser('~'), '.shone', filename)
+    return path
+
+
+def parse_nc_path_atom(filename):
+    basename = os.path.basename(filename).split('.nc')[0]
+    (
+        atom, charge, line_list, temp_min, temp_max,
+        press_min, press_max, version
+    ) = basename.split('_')
+
+    charge = int(charge)
+    temperature_range = [float(temp_min), float(temp_max)]
+    pressure_range = [float(press_min), float(press_max)]
+    version = int(float(version))
+
+    return atom, charge, line_list, temperature_range, pressure_range, version
 
 
 def download_atom(atom, charge, line_list='first-found',
@@ -387,7 +487,7 @@ def download_atom(atom, charge, line_list='first-found',
         temperature requested. Defaults to the full
         range of available temperatures.
     pressure_range : tuple, optional
-        Tuple of floags specifying the log base 10 of the
+        Tuple of floats specifying the log base 10 of the
         min and max pressure [bar] requested. Defaults to the full
         range of available pressures.
     version : float, optional
@@ -424,12 +524,15 @@ def download_atom(atom, charge, line_list='first-found',
         atom, charge, line_list, temperature_range, pressure_range, version=version
     )
     untar_bin_files(archive_name)
-    bin_dir = get_opacity_dir_path_atom(line_list)
+    bin_dir = get_opacity_dir_path_atom(atom, line_list)
 
-    nc_path = os.path.join(
-        os.path.expanduser('~'),
-        '.shone',
-        atom + '_' + str(int(charge)) + '__' + line_list + '.nc'
+    nc_path = create_nc_path_atom(
+        atom,
+        charge,
+        line_list,
+        temperature_range,
+        pressure_range,
+        version
     )
     opacity_dir_to_netcdf(bin_dir, nc_path)
     clean_up(bin_dir, archive_name)

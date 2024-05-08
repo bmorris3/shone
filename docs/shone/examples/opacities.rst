@@ -133,7 +133,7 @@ You can inspect the opacities from one temperature and pressure slice like so:
     )
 
     plt.semilogy(
-        opacity_sample.wavelength, opacity_sample.opacity,
+        opacity_sample.wavelength, opacity_sample,
         label=f"T={opacity_sample.temperature} K"
     )
     plt.gca().set(
@@ -180,6 +180,9 @@ Now you can get the opacity at wavelengths, temperatures, and pressures that wer
 the grid:
 
 .. code-block:: python
+
+    import numpy as np
+    import matplotlib.pyplot as plt
 
     wavelength = np.linspace(1, 5, 500)  # [µm]
     pressure = 0.3  # [bar]

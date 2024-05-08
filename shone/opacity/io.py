@@ -11,7 +11,6 @@ from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_
 
 from shone.chemistry import isotopologue_to_species
 
-
 __all__ = ['Opacity', 'generate_synthetic_opacity']
 
 
@@ -97,6 +96,9 @@ class Opacity:
             Table containing entries for every opacity file
             available on disk.
         """
+        # prevent circular import:
+        from shone.opacity.dace import parse_nc_path_molecule, parse_nc_path_atom
+
         if shone_directory is None:
             shone_directory = shone_dir
         nc_paths = glob(os.path.join(shone_directory, "*.nc"))
@@ -105,22 +107,43 @@ class Opacity:
             "species": [],
             "charge": [],
             "line_list": [],
+            "version": [],
+            "size_gb": [],
             "path": [],
         }
         for i, path in enumerate(nc_paths):
             file_name = os.path.basename(path).split('.nc')[0]
-            species, line_list = file_name.split('__')
-            table_contents["line_list"].append(line_list)
 
-            if '_' in species:
-                species, charge = species.split('_')
-                table_contents["charge"].append(int(charge))
+            # set defaults to overwrite if available:
+            charge = np.ma.masked
+            atom = None
+            isotopologue = None
+
+            if len(file_name.split('_')) == 8:
+                (
+                    atom, charge, line_list,
+                    temperature_range, pressure_range,
+                    version
+                ) = parse_nc_path_atom(file_name)
             else:
-                table_contents["charge"].append(np.ma.masked)
+                (
+                    isotopologue, line_list,
+                    temperature_range, pressure_range,
+                    version
+                ) = parse_nc_path_molecule(file_name)
 
-            table_contents["species"].append(species)
+            species = isotopologue or atom
+
             table_contents["name"].append(isotopologue_to_species(species))
+            table_contents["species"].append(species)
+            table_contents["charge"].append(charge)
+            table_contents["line_list"].append(line_list)
+            table_contents["version"].append(version)
+            table_contents["size_gb"].append(
+                round(os.stat(path).st_size / 1e9, 3)
+            )
             table_contents["path"].append(path)
+
         table = Table(table_contents)
         table.sort('name')
         table['index'] = np.arange(len(table))
