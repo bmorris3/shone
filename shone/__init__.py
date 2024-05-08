@@ -3,5 +3,6 @@ try:
 except ImportError:
     __version__ = ''
 
-from .chemistry import *  # noqa
 from .opacity import *  # noqa
+from .chemistry import *  # noqa
+

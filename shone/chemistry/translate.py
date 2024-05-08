@@ -8,7 +8,8 @@ __all__ = [
     'isotopologue_to_species',
     'isotopologue_to_mass',
     'species_name_to_fastchem_name',
-    'species_name_to_common_isotopologue_name'
+    'species_name_to_common_isotopologue_name',
+    'species_name_to_fastchem_name',
 ]
 
 
@@ -149,4 +150,43 @@ def species_name_to_common_isotopologue_name(species):
     else:
         correct_notation = atoms[0]
 
+    return correct_notation
+
+
+def species_name_to_fastchem_name(k, return_mass=False):
+    """
+    Convert generic species name, like "H20" or "ClAlF2", to
+    Hill notation for FastChem, like "H2O1" or "Al1Cl1F2". Also return the total
+    mass of the species by summing the masses of its components.
+    """
+    atoms = np.array(list(filter(
+        lambda x: len(x) > 0, re.split(r"(?<=[a-z])|(?=[A-Z])|\d", k)
+    )))
+
+    multipliers = np.array([
+        int(x) if len(x) > 0 else 1 for x in re.split(r'\D', k)
+    ])
+    lens = [len(''.join(atom)) for atom in atoms]
+    multipliers_skipped = np.array([multipliers[cs] for cs in np.cumsum(lens)])
+
+    order = np.argsort(atoms)
+
+    correct_notation = ''.join([
+        a + str(m) for a, m in zip(atoms[order], multipliers_skipped[order])
+    ])
+
+    # If single atom, give only the name of the atom:
+    if len(correct_notation) == 2 and correct_notation.endswith('1'):
+        correct_notation = correct_notation[0]
+    elif len(correct_notation) == 3 and correct_notation.endswith('1'):
+        correct_notation = correct_notation[:2]
+
+    if return_mass:
+        # Optionally return mass of species
+        from periodictable import elements
+        mass = 0
+        for atom, mult in zip(atoms, multipliers_skipped):
+            mass += getattr(elements, atom).mass * mult
+
+        return correct_notation, mass
     return correct_notation

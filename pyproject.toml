@@ -22,6 +22,7 @@ dependencies = [
     "dace-query",
     "xarray",
     "tensorflow-probability",
+    "pyfastchem",
 ]
 dynamic = ["version"]
 
