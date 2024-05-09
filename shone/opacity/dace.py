@@ -293,7 +293,8 @@ def opacity_dir_to_netcdf(opacity_dir, outpath, **kwargs):
             pressure=(["pressure"], pgrid),
             wavelength=unique_wavelengths
         ),
-        attrs=kwargs
+        attrs={key: value if value is not None else ''
+               for key, value in kwargs.items()}
     )
 
     if not os.path.exists(os.path.dirname(outpath)):
