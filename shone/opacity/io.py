@@ -189,7 +189,7 @@ class Opacity:
         return cls(path=table_row['path'][0])
 
 
-def generate_synthetic_opacity(filename='synthetic__example.nc'):
+def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
     """
     Construct a netCDF file containing a synthetic opacity grid.
     Useful for examples in the tests and documentation.
