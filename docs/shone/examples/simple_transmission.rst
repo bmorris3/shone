@@ -137,7 +137,7 @@ arguments for temperature or pressure, but we can easily vectorize it
 with `~jax.vmap` like this:
 
 .. code-block:: python
-
+    from jax import vmap
     # interpolate for a range of wavelengths at one pressure and temperature:
     temperature = np.array([200, 400, 600, 800])
 
