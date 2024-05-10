@@ -21,6 +21,7 @@ dependencies = [
     "periodictable",
     "dace-query",
     "xarray",
+    "tensorflow-probability",
 ]
 dynamic = ["version"]
 

@@ -1,14 +1,13 @@
-*****
 shone
-*****
+=====
 
 Fast radiative transfer in JAX.
 
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
 
   shone/installation.rst
-  shone/opacities.rst
+  shone/examples.rst
   shone/dev.rst
   shone/api.rst
