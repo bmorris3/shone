@@ -24,6 +24,7 @@ dependencies = [
     "xarray",
     "tensorflow-probability",
     "pyfastchem",
+    "tqdm"
 ]
 dynamic = ["version"]
 

@@ -440,10 +440,13 @@ def create_nc_path_molecule(
 
 def parse_nc_path_molecule(filename):
     basename = os.path.basename(filename).split('.nc')[0]
-    (
-        isotopologue, line_list, temp_min, temp_max,
-        press_min, press_max, version
-    ) = basename.split('_')
+    try:
+        (
+            isotopologue, line_list, temp_min, temp_max,
+            press_min, press_max, version
+        ) = basename.split('_')
+    except ValueError as e:
+        raise ValueError(f"failed to parse {filename} with error: {e}")
 
     temperature_range = [float(temp_min), float(temp_max)]
     pressure_range = [float(press_min), float(press_max)]

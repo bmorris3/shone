@@ -9,18 +9,10 @@ from astropy.table import Table
 from jax import numpy as jnp, jit
 from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 
+from shone.config import shone_dir
 from shone.chemistry import isotopologue_to_species
 
 __all__ = ['Opacity', 'generate_synthetic_opacity']
-
-
-on_rtd = os.getenv('READTHEDOCS', False)
-
-shone_dir = os.path.expanduser(os.path.join("~", ".shone"))
-
-if on_rtd:
-    # use a temporary directory on readthedocs:
-    shone_dir = os.path.abspath('./.')
 
 
 class Opacity:
@@ -127,12 +119,15 @@ class Opacity:
                     temperature_range, pressure_range,
                     version
                 ) = parse_nc_path_atom(file_name)
-            else:
+            elif len(file_name.split('_')) == 7:
                 (
                     isotopologue, line_list,
                     temperature_range, pressure_range,
                     version
                 ) = parse_nc_path_molecule(file_name)
+            else:
+                # if name doesn't match expected pattern, skip it:
+                continue
 
             species = isotopologue or atom
 
