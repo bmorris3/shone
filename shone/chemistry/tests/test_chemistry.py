@@ -1,6 +1,6 @@
 import pytest
 
-from shone.chemistry.chemistry import (
+from shone.chemistry.translate import (
     species_name_to_fastchem_name, isotopologue_to_species,
     species_name_to_common_isotopologue_name
 )

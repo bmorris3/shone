@@ -5,4 +5,4 @@ except ImportError:
 
 from .opacity import *  # noqa
 from .chemistry import *  # noqa
-
+from .transmission import *  # noqa
