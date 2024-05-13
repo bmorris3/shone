@@ -1,17 +1,24 @@
 import os
 import numpy as np
+from tqdm.auto import tqdm
+import xarray as xr
+
+from astropy.constants import m_p, k_B
+from astropy.table import Table
 from pyfastchem import (
     FastChem, FastChemInput, FastChemOutput
 )
-from astropy.constants import m_p, k_B
-from astropy.table import Table
+
+from shone.config import shone_dir
+
 
 # constants in cgs:
 m_p = m_p.cgs.value
 k_B = k_B.cgs.value
 
+fastchem_grid_filename = 'fastchem_grid.nc'
 
-__all__ = ['FastchemWrapper']
+__all__ = ['FastchemWrapper', 'build_fastchem_grid']
 
 
 class FastchemWrapper:
@@ -208,3 +215,96 @@ class FastchemWrapper:
         mmr_mmw = vmr * weights[None, :]
 
         return mmr_mmw
+
+
+def round_in_log(x):
+    log_floor = np.floor(np.log10(x))
+    pre_exponent = np.round(x * 10 ** -log_floor, 1)
+    return pre_exponent * 10 ** log_floor
+
+
+def build_fastchem_grid(
+    temperature=None, pressure=None,
+    log_m_to_h=None, log_c_to_o=None,
+    n_species=523
+):
+    """
+    Pre-compute a grid of equilibrium chemistry solutions from FastChem.
+
+    The grid will be saved as a netCDF file in the default ``shone``
+    directory.
+
+    Parameters
+    ----------
+    temperature : array-like
+        Temperature grid.
+    pressure : array-like
+        Pressure grid.
+    log_m_to_h : array-like
+        Metallicity grid.
+    log_c_to_o : array-like
+        C/O grid.
+    n_species : int
+        Number of species in this FastChem computation.
+
+    Returns
+    -------
+    ds : `~xarray.Dataset`
+        Dataset containing the 5D fastchem grid over temperature,
+        pressure, metallicity, C/O, and species.
+    """
+    if temperature is None:
+        temperature = np.round(np.geomspace(300, 6000, 20), -1)
+    if pressure is None:
+        pressure = round_in_log(np.geomspace(1e-8, 10, 20))
+    if log_m_to_h is None:
+        log_m_to_h = np.linspace(-1, 2.5, 8)
+    if log_c_to_o is None:
+        log_c_to_o = np.linspace(-1, 2, 16)
+
+    shape = (
+        pressure.size, temperature.size,
+        log_m_to_h.size, log_c_to_o.size,
+        n_species
+    )
+
+    results = np.empty(shape, dtype=np.float32)
+    pressure2d, temperature2d = np.meshgrid(pressure, temperature)
+
+    for i, log_mh in tqdm(
+        enumerate(log_m_to_h),
+        total=len(log_m_to_h),
+        desc="Pre-computing FastChem grid"
+    ):
+        for j, log_co in enumerate(log_c_to_o):
+            chem2d = FastchemWrapper(
+                temperature2d.ravel(), pressure2d.ravel(),
+                metallicity=10 ** log_mh,
+                c_to_o_ratio=10 ** log_co
+            )
+
+            mmr_mmw = chem2d.mmr_mmw().reshape((*pressure2d.shape, n_species))
+
+            results[:, :, i, j, :] = mmr_mmw
+
+    species_table = chem2d.get_species()
+
+    ds = xr.Dataset(
+        data_vars=dict(
+            mmr_mmw=(
+                "pressure temperature log_m_to_h log_c_to_o species".split(),
+                results
+            )
+        ),
+        coords=dict(
+            temperature=temperature,
+            pressure=pressure,
+            log_m_to_h=log_m_to_h,
+            log_c_to_o=log_c_to_o,
+            species=list(species_table['symbol']),
+        ),
+        attrs={str(idx): symbol for idx, symbol in species_table[['index', 'symbol']]}
+    )
+
+    ds.to_netcdf(os.path.join(shone_dir, fastchem_grid_filename))
+    return ds
