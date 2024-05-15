@@ -8,7 +8,7 @@ __all__ = [
     'isotopologue_to_species',
     'isotopologue_to_mass',
     'species_name_to_fastchem_name',
-    'species_name_to_common_isotopologue_name'
+    'species_name_to_common_isotopologue_name',
 ]
 
 

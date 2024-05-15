@@ -12,7 +12,7 @@ import xarray as xr
 from astropy.table import Table
 from dace_query.opacity import Molecule, Atom
 
-from shone.chemistry import species_name_to_common_isotopologue_name
+from shone.chemistry.translate import species_name_to_common_isotopologue_name
 
 interp_kwargs = dict(
     method='nearest',
