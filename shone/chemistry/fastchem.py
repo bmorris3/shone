@@ -1,13 +1,16 @@
+from functools import partial
 import os
 import numpy as np
 from tqdm.auto import tqdm
 import xarray as xr
+from jax import numpy as jnp, jit
 
 from astropy.constants import m_p, k_B
 from astropy.table import Table
 from pyfastchem import (
     FastChem, FastChemInput, FastChemOutput
 )
+from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 
 from shone.config import shone_dir
 
@@ -18,7 +21,7 @@ k_B = k_B.cgs.value
 
 fastchem_grid_filename = 'fastchem_grid.nc'
 
-__all__ = ['FastchemWrapper', 'build_fastchem_grid']
+__all__ = ['FastchemWrapper', 'build_fastchem_grid', 'get_fastchem_interpolator']
 
 
 class FastchemWrapper:
@@ -208,8 +211,8 @@ class FastchemWrapper:
             for each species.
         """
         vmr = self.vmr()
-        weights = self.get_weights()
-        mmr_mmw = vmr * weights[None, :]
+        weights_amu = self.get_weights()
+        mmr_mmw = vmr * weights_amu[None, :]
 
         return mmr_mmw
 
@@ -265,7 +268,8 @@ def build_fastchem_grid(
         n_species
     )
 
-    results = np.empty(shape, dtype=np.float32)
+    results_mmr = np.empty(shape, dtype=np.float32)
+    results_vmr = np.empty(shape, dtype=np.float32)
     pressure2d, temperature2d = np.meshgrid(pressure, temperature)
 
     for i, log_mh in tqdm(
@@ -281,17 +285,19 @@ def build_fastchem_grid(
             )
 
             mmr_mmw = chem2d.mmr_mmw().reshape((*pressure2d.shape, n_species))
+            vmr = chem2d.vmr().reshape((*pressure2d.shape, n_species))
 
-            results[:, :, i, j, :] = mmr_mmw
+            results_mmr[:, :, i, j, :] = mmr_mmw
+            results_vmr[:, :, i, j, :] = vmr
 
     species_table = chem2d.get_species()
 
+    coord_names = "pressure temperature log_m_to_h log_c_to_o species".split()
+
     ds = xr.Dataset(
         data_vars=dict(
-            mmr_mmw=(
-                "pressure temperature log_m_to_h log_c_to_o species".split(),
-                results
-            )
+            mmr_mmw=(coord_names, results_mmr),
+            vmr=(coord_names, results_vmr)
         ),
         coords=dict(
             temperature=temperature,
@@ -305,3 +311,59 @@ def build_fastchem_grid(
 
     ds.to_netcdf(os.path.join(shone_dir, fastchem_grid_filename))
     return ds
+
+
+def get_fastchem_interpolator(path=None):
+    """
+    Return a jitted FastChem abundance interpolator.
+
+    Returns
+    -------
+    interp : function
+        A just-in-time compiled opacity interpolator.
+    """
+    if path is None:
+        path = os.path.join(shone_dir, fastchem_grid_filename)
+
+    with xr.open_dataset(path) as ds:
+        grid = ds.vmr
+
+    x_grid_points = (
+        jnp.float32(grid.pressure.to_numpy()),
+        jnp.float32(grid.temperature.to_numpy()),
+        jnp.float32(grid.log_m_to_h.to_numpy()),
+        jnp.float32(grid.log_c_to_o.to_numpy()),
+    )
+
+    @partial(jit, donate_argnames=('grid',))
+    def interp(
+        temperature, pressure, log_m_to_h, log_c_to_o,
+        grid=grid.to_numpy().astype(np.float32)
+    ):
+        """
+        Parameters
+        ----------
+        temperature : float
+            Temperature value.
+        pressure : float
+            Pressure value.
+        log_m_to_h : float
+            [M/H] value.
+        log_c_to_o : array-like
+            [C/O] value.
+        """
+        interp_point = jnp.column_stack([
+            pressure,
+            temperature,
+            log_m_to_h,
+            log_c_to_o,
+        ]).astype(jnp.float32)
+
+        return nd_interp(
+            interp_point,
+            x_grid_points,
+            grid,
+            axis=0
+        )
+
+    return interp
