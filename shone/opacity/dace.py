@@ -64,7 +64,12 @@ class AvailableOpacities:
             (table['line_list'] == line_list) &
             (table['charge'] == charge)
         )]
-        return max(set(matches['version']))
+        versions = set(matches['version'])
+        if len(versions):
+            return max(set(matches['version']))
+
+        # if DACE API doesn't return a list of versions, get v1
+        return 1
 
     def get_molecular_latest_version(self, isotopologue, line_list):
         table = self.molecular
@@ -76,6 +81,18 @@ class AvailableOpacities:
 
     def get_atomic_pT_range(self, atom, charge, line_list):
         table = self.get_atomic_database_entry(atom, charge, line_list)
+
+        if not len(table):
+            available_lists = self.get_atomic_line_lists(atom)
+            available_lists.remove(line_list)
+            raise ValueError(
+                f"DACE said that atom {atom} with charge {charge} "
+                f"should be available from the line list '{line_list}', but none "
+                f"was found when `shone` queried DACE. This is likely an issue with "
+                f"DACE. DACE reports that these other line lists should "
+                f"be available: {available_lists}."
+            )
+
         temperature_range = (
             int(table['temp_min_k'][0]),
             int(table['temp_max_k'][0])
@@ -84,6 +101,7 @@ class AvailableOpacities:
             float(table['pressure_min_exponent_b'][0]),
             float(table['pressure_max_exponent_b'][0])
         )
+
         return temperature_range, pressure_range
 
     def get_molecular_pT_range(self, isotopologue, line_list):
