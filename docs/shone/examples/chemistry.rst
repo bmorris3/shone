@@ -64,9 +64,9 @@ Returns a table like this:
 .. raw:: html
 
     <br />
-    <table>
+    <table style="width:75%">
       <thead>
-        <tr>
+        <tr style="text-align: left;">
           <th></th>
           <th>index</th>
           <th>name</th>
@@ -191,8 +191,11 @@ we must multiply the opacity :math:`\kappa` by the mass density of the species :
 [:math:`{\rm g~cm}^{-3}`].
 
 
-Precompute a FastChem grid
---------------------------
+Precompute FastChem on grid
+---------------------------
+
+Build a grid
+++++++++++++
 
 As the name suggests, the FastChem is fast! That said, computing it millions of times
 during Monte Carlo sampling may not be the best use of your time for species with mixing
@@ -209,3 +212,98 @@ in less than a minute on a laptop:
 
 The grid is saved to your `~/.shone` directory and can be interpolated during sampling to
 use *approximate* FastChem mixing ratios.
+
+Interpolate from the grid
++++++++++++++++++++++++++
+
+Now let's print a table of volume mixing ratios for the first five species:
+
+.. code-block:: python
+
+    from shone.chemistry import get_fastchem_interpolator, fastchem_species_table
+    from astropy.table import Table
+
+    # load the jitted chemistry interpolator:
+    interp_chem = get_fastchem_interpolator()
+
+    # load a table listing all species:
+    species_table = fastchem_species_table()
+
+    temperature = 2300  # [K]
+    pressure = 1e-3  # [bar]
+    log_m_to_h = 0.3
+    log_c_to_o = -0.2
+
+    # interpolate on all four axes, return VMR for
+    vmr = interp_chem(temperature, pressure, log_m_to_h, log_c_to_o)
+
+    # add a column to the table of species with the VMRs:
+    species_table['vmr'] = vmr[0]
+
+    print(species_table[:5])
+
+.. raw:: html
+
+    <table style="width:75%">
+      <thead>
+        <tr style="text-align: left;">
+          <th></th>
+          <th>index</th>
+          <th>name</th>
+          <th>weight</th>
+          <th>type</th>
+          <th>vmr</th>
+        </tr>
+        <tr>
+          <th>symbol</th>
+          <th></th>
+          <th></th>
+          <th></th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>e-</th>
+          <td>0</td>
+          <td>Electron</td>
+          <td>0.00055</td>
+          <td>element</td>
+          <td>1.9e-06</td>
+        </tr>
+        <tr>
+          <th>Al</th>
+          <td>1</td>
+          <td>Aluminium</td>
+          <td>27</td>
+          <td>element</td>
+          <td>8.9e-06</td>
+        </tr>
+        <tr>
+          <th>Ar</th>
+          <td>2</td>
+          <td>Argon</td>
+          <td>40</td>
+          <td>element</td>
+          <td>8.1e-06</td>
+        </tr>
+        <tr>
+          <th>C</th>
+          <td>3</td>
+          <td>Carbon</td>
+          <td>12</td>
+          <td>element</td>
+          <td>2.5e-12</td>
+        </tr>
+        <tr>
+          <th>Ca</th>
+          <td>4</td>
+          <td>Calcium</td>
+          <td>40</td>
+          <td>element</td>
+          <td>6.6e-06</td>
+        </tr>
+      </tbody>
+    </table>
+

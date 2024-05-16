@@ -21,7 +21,12 @@ k_B = k_B.cgs.value
 
 fastchem_grid_filename = 'fastchem_grid.nc'
 
-__all__ = ['FastchemWrapper', 'build_fastchem_grid', 'get_fastchem_interpolator']
+__all__ = [
+    'FastchemWrapper',
+    'build_fastchem_grid',
+    'get_fastchem_interpolator',
+    'fastchem_species_table',
+]
 
 
 class FastchemWrapper:
@@ -60,9 +65,9 @@ class FastchemWrapper:
         Parameters
         ----------
         temperature : array-like
-            Temperature grid.
+            Temperature grid [K].
         pressure : array-like
-            Pressure grid.
+            Pressure grid [bar].
         mean_molecular_weight : float
             Mean molecular weight of the atmosphere [AMU].
         metallicity : float
@@ -98,7 +103,6 @@ class FastchemWrapper:
 
         # create the input and output structures for FastChem
         self._input_data = FastChemInput()
-
         self._input_data.temperature = self.temperature
         self._input_data.pressure = self.pressure
 
@@ -137,7 +141,9 @@ class FastchemWrapper:
         # run FastChem on the entire p-T structure
         self.fastchem.calcDensities(self._input_data, output_data)
         n_densities = np.array(output_data.number_densities)  # [cm-3]
-        gas_number_density = self.pressure / (k_B * self.temperature)  # [cm-3]
+
+        bar_to_cgs = 1e6  # [dyn / bar]
+        gas_number_density = bar_to_cgs * self.pressure / (k_B * self.temperature)  # [cm-3]
         vmr = n_densities / gas_number_density[:, None]
 
         return vmr
@@ -257,7 +263,7 @@ def build_fastchem_grid(
         pressure, metallicity, C/O, and species.
     """
     if temperature is None:
-        temperature = np.round(np.geomspace(300, 6000, 20), -1)
+        temperature = np.round(np.geomspace(300, 6000, 22), -1)
     if pressure is None:
         pressure = round_in_log(np.geomspace(1e-8, 10, 20))
     if log_m_to_h is None:
@@ -273,7 +279,7 @@ def build_fastchem_grid(
 
     results_mmr = np.empty(shape, dtype=np.float32)
     results_vmr = np.empty(shape, dtype=np.float32)
-    pressure2d, temperature2d = np.meshgrid(pressure, temperature)
+    temperature2d, pressure2d = np.meshgrid(temperature, pressure)
 
     for i, log_mh in tqdm(
         enumerate(log_m_to_h),
@@ -328,6 +334,13 @@ def get_fastchem_interpolator(path=None):
     if path is None:
         path = os.path.join(shone_dir, fastchem_grid_filename)
 
+    if not os.path.exists(path):
+        raise ValueError(
+            f"Expected precomputed FastChem grid at {path}, "
+            "but none was found. Run `build_fastchem_grid()` to "
+            "create one."
+        )
+
     with xr.open_dataset(path) as ds:
         grid = ds.vmr
 
@@ -370,3 +383,17 @@ def get_fastchem_interpolator(path=None):
         )
 
     return interp
+
+
+def fastchem_species_table():
+    """
+    Return a table of the species included in FastChem.
+
+    Returns
+    -------
+    table : `~astropy.table.Table`
+        Table with columns: index, name, symbol, weight,
+        and type (element or molecule).
+    """
+    fastchem = FastchemWrapper(np.array([2300]), np.array([1]))
+    return fastchem.get_species()
