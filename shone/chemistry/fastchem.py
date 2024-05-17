@@ -38,14 +38,17 @@ class FastchemWrapper:
 
     References
     ----------
-    .. [1] Stock, J. W., Kitzmann, D., Patzer, A. B. C., et al. 2018,
+    .. [1] `Stock, J. W., Kitzmann, D., Patzer, A. B. C., et al. 2018,
        Monthly Notices of the Royal Astronomical Society, 479,
-       865. doi:10.1093/mnras/sty1531
-    .. [2] Stock, J. W., Kitzmann, D., & Patzer, A. B. C. 2022,
+       865. <https://ui.adsabs.harvard.edu/abs/2018MNRAS.479..865S/abstract>`_
+       doi:10.1093/mnras/sty1531
+    .. [2] `Stock, J. W., Kitzmann, D., & Patzer, A. B. C. 2022,
        Monthly Notices of the Royal Astronomical Society, 517,
-       4070. doi:10.1093/mnras/stac2623
-    .. [3] Kitzmann, D., Stock, J. W., & Patzer, A. B. C. 2024, Monthly
+       4070. <https://ui.adsabs.harvard.edu/abs/2022MNRAS.517.4070S/abstract>`_
+       doi:10.1093/mnras/stac2623
+    .. [3] `Kitzmann, D., Stock, J. W., & Patzer, A. B. C. 2024, Monthly
        Notices of the Royal Astronomical Society, 527, 7263.
+       <https://ui.adsabs.harvard.edu/abs/2024MNRAS.527.7263K/abstract>`_
        doi:10.1093/mnras/stad3515
     .. [4] `FastChem on Github <https://github.com/exoclime/FastChem>`_.
     """

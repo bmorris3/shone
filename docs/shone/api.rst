@@ -14,3 +14,5 @@ Reference/API
 
 .. automodapi:: shone.transmission
     :no-inheritance-diagram:
+
+.. automodapi:: shone.spectrum

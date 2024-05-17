@@ -6,3 +6,4 @@ except ImportError:
 from .chemistry import *  # noqa
 from .opacity import *  # noqa
 from .transmission import *  # noqa
+from .spectrum import *  # noqa
