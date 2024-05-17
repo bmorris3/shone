@@ -38,6 +38,9 @@ def bin_spectrum(output_wavelength, input_wavelength, input_flux):
     """
     Bin a spectrum from one wavelength grid to another.
 
+    This function is a JAX implementation of SpectRes [1]_
+    from A. C. Carnall [2]_.
+
     Parameters
     ----------
     output_wavelength : array−like
@@ -51,6 +54,12 @@ def bin_spectrum(output_wavelength, input_wavelength, input_flux):
     -------
     binned_spectrum : array-like
         Spectrum binned to a different resolution.
+
+    References
+    ----------
+    .. [1] `SpectRes on GitHub <https://github.com/ACCarnall/SpectRes>`_.
+    .. [2]  Carnall, A. C. 2017, `arXiv:1705.05165 <https://arxiv.org/abs/1705.05165>`_.
+            doi:10.48550/arXiv.1705.05165
     """
     old_edges, old_widths = bin_centers_to_edges(input_wavelength)
     new_edges, new_widths = bin_centers_to_edges(output_wavelength)
