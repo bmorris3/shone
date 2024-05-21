@@ -28,7 +28,7 @@ def test_spectral_binning():
         input_spec_axis, output_spec_axis, input_flux * u.ct, None
     )[0].value
 
-    # check for 10 ppm agreement, excluding first and last bins:
+    # check for 10 ppm agreement:
     np.testing.assert_allclose(
         shone_binned, specutils_binned, rtol=1e-5
     )
