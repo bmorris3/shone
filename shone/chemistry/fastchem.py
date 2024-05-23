@@ -246,13 +246,13 @@ def build_fastchem_grid(
     Parameters
     ----------
     temperature : array-like
-        Temperature grid.
+        Temperature grid. Default is roughly log-spaced from 300 to 6000 K.
     pressure : array-like
-        Pressure grid.
+        Pressure grid. Default is roughly log-spaced from 1e-8 to 10 bar.
     log_m_to_h : array-like
-        Metallicity grid.
+        Metallicity grid. Default is log-spaced from -1 to 3.
     log_c_to_o : array-like
-        C/O grid.
+        C/O grid. Default is log-spaced from -1 to 2.
     n_species : int
         Number of species in this FastChem computation.
 
@@ -267,7 +267,7 @@ def build_fastchem_grid(
     if pressure is None:
         pressure = round_in_log(np.geomspace(1e-8, 10, 20))
     if log_m_to_h is None:
-        log_m_to_h = np.linspace(-1, 2.5, 8)
+        log_m_to_h = np.linspace(-1, 3, 11)
     if log_c_to_o is None:
         log_c_to_o = np.linspace(-1, 2, 16)
 

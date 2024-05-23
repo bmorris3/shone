@@ -119,7 +119,7 @@ species:
 
     # lookup the column index for O2 in the fastchem VMR matrix:
     idx = species_table.loc['O2']['index']
-    vmr_O2 = vmr[: idx]
+    vmr_O2 = chem.vmr()[: idx]
 
 We can plot the VMRs of several species as a function of pressure like so:
 
@@ -132,7 +132,7 @@ We can plot the VMRs of several species as a function of pressure like so:
     names = species_table.loc[species]['name']
 
     ax = plt.gca()
-    ax.loglog(vmr[:, indices], pressure, label=names)
+    ax.loglog(chem.vmr()[:, indices], pressure, label=names)
     ax.legend(loc='lower left')
     ax.invert_yaxis()
     ax.set(
@@ -200,7 +200,7 @@ Build a grid
 As the name suggests, the FastChem is fast! That said, computing it millions of times
 during Monte Carlo sampling may not be the best use of your time for species with mixing
 ratios that vary smoothly with temperature, pressure, M/H, and C/O. We have included a
-convenience function called `~shone.chemistry.build_fastchem_grid` that runs FastChem in
+convenience function called `~shone.chemistry.fastchem.build_fastchem_grid` that runs FastChem in
 a loop over these four dimensions to create a ~100 MB grid of abundances for each species
 in less than a minute on a laptop:
 
@@ -208,10 +208,11 @@ in less than a minute on a laptop:
 
     from shone.chemistry import build_fastchem_grid
 
-    chem_grid = build_fastchem_grid()
+    build_fastchem_grid()  # returns a chemistry grid and saves it to disk
 
 The grid is saved to your `~/.shone` directory and can be interpolated during sampling to
-use *approximate* FastChem mixing ratios.
+use *approximate* FastChem mixing ratios. The default limits for each dimension are enumerated
+in the documentation for `~shone.chemistry.fastchem.build_fastchem_grid`.
 
 Interpolate from the grid
 +++++++++++++++++++++++++
