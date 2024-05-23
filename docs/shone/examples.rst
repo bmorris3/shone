@@ -8,3 +8,4 @@ Examples
 
   examples/opacities.rst
   examples/simple_transmission.rst
+  examples/chemistry.rst
