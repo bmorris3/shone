@@ -267,7 +267,7 @@ def build_fastchem_grid(
     if pressure is None:
         pressure = round_in_log(np.geomspace(1e-8, 10, 20))
     if log_m_to_h is None:
-        log_m_to_h = np.linspace(-1, 2.5, 8)
+        log_m_to_h = np.linspace(-1, 3, 11)
     if log_c_to_o is None:
         log_c_to_o = np.linspace(-1, 2, 16)
 
@@ -373,7 +373,7 @@ def get_fastchem_interpolator(path=None):
             temperature,
             log_m_to_h,
             log_c_to_o,
-        ]).astype(jnp.float32)
+        ])
 
         return nd_interp(
             interp_point,
