@@ -7,3 +7,5 @@ Reference/API
 .. automodapi:: shone.opacity
 
 .. automodapi:: shone.transmission
+
+.. automodapi:: shone.spectrum

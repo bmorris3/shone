@@ -21,7 +21,8 @@ interp_kwargs = dict(
 
 __all__ = [
     'download_molecule',
-    'download_atom'
+    'download_atom',
+    'available_opacities'
 ]
 
 
@@ -337,11 +338,13 @@ def download_molecule(
     version=None,
 ):
     """
-    Download molecular opacity data from DACE.
+    Download molecular opacity data from DACE [1]_ [2]_.
+
+    These opacities were computed with HELIOS-K [3]_ [4]_ [5]_.
 
     .. warning::
         This generates *very* large files. Only run this
-        method if you have ~6 GB available per molecule.
+        method if you a few GB available per molecule.
 
     Parameters
     ----------
@@ -363,6 +366,20 @@ def download_molecule(
     version : float, optional
         Version number of the line list in DACE. Defaults to the
         latest version.
+
+    References
+    ----------
+    .. [1] `Buchschacher, N. & Alesina, F. 2019, Astronomical Data Analysis
+           Software and Systems XXVI, 521, 757
+           <https://ui.adsabs.harvard.edu/abs/2019ASPC..521..757B/abstract>`_
+    .. [2] `DACE webpage <https://dace.unige.ch/>`_
+    .. [3] `Grimm, S. L. & Heng, K. 2015, The Astrophysical Journal, 808, 182.
+           <https://ui.adsabs.harvard.edu/abs/2015ApJ...808..182G/abstract>`_
+           doi:10.1088/0004-637X/808/2/182
+    .. [4] `Grimm, S. L., Malik, M., Kitzmann, D., et al. 2021, The Astrophysical
+           Journal Supplement Series, 253, 30. doi:10.3847/1538-4365/abd773
+           <https://ui.adsabs.harvard.edu/abs/2021ApJS..253...30G/abstract>`_
+    .. [5] `HELIOS-K on GitHub <https://github.com/exoclime/helios-k>`_
     """
     if molecule_name is not None:
         isotopologue = species_name_to_common_isotopologue_name(molecule_name)
@@ -488,11 +505,13 @@ def parse_nc_path_atom(filename):
 def download_atom(atom, charge, line_list='first-found',
                   temperature_range=None, pressure_range=None, version=None):
     """
-    Download atomic opacity data from DACE.
+    Download atomic opacity data from DACE [1]_ [2]_.
+
+    These opacities were computed with HELIOS-K [3]_ [4]_ [5]_.
 
     .. warning::
         This generates *very* large files. Only run this
-        method if you have ~6 GB available per molecule.
+        method if you have a few GB available per atom.
 
     Parameters
     ----------
@@ -514,6 +533,20 @@ def download_atom(atom, charge, line_list='first-found',
     version : float, optional
         Version number of the line list in DACE. Defaults to the
         latest version.
+
+    References
+    ----------
+    .. [1] `Buchschacher, N. & Alesina, F. 2019, Astronomical Data Analysis
+           Software and Systems XXVI, 521, 757
+           <https://ui.adsabs.harvard.edu/abs/2019ASPC..521..757B/abstract>`_
+    .. [2] `DACE webpage <https://dace.unige.ch/>`_
+    .. [3] `Grimm, S. L. & Heng, K. 2015, The Astrophysical Journal, 808, 182.
+           <https://ui.adsabs.harvard.edu/abs/2015ApJ...808..182G/abstract>`_
+           doi:10.1088/0004-637X/808/2/182
+    .. [4] `Grimm, S. L., Malik, M., Kitzmann, D., et al. 2021, The Astrophysical
+           Journal Supplement Series, 253, 30. doi:10.3847/1538-4365/abd773
+           <https://ui.adsabs.harvard.edu/abs/2021ApJS..253...30G/abstract>`_
+    .. [5] `HELIOS-K on GitHub <https://github.com/exoclime/helios-k>`_
     """
     available_line_lists = available_opacities.get_atomic_line_lists(atom)
 

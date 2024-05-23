@@ -127,13 +127,14 @@ class Opacity:
                     temperature_range, pressure_range,
                     version
                 ) = parse_nc_path_atom(file_name)
-            else:
+            elif len(file_name.split('_')) == 7:
                 (
                     isotopologue, line_list,
                     temperature_range, pressure_range,
                     version
                 ) = parse_nc_path_molecule(file_name)
-
+            else:
+                continue
             species = isotopologue or atom
 
             table_contents["name"].append(isotopologue_to_species(species))
