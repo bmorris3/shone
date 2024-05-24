@@ -93,27 +93,42 @@ Returns a table like this:
           <th>e-</th>
           <td>0</td>
           <td>Electron</td>
-          <td>0.000549</td>
+          <td>0.00054857990907</td>
           <td>element</td>
         </tr>
         <tr>
           <th>Al</th>
           <td>1</td>
           <td>Aluminium</td>
-          <td>26.981538</td>
+          <td>26.9815385</td>
           <td>element</td>
         </tr>
         <tr>
           <th>Ar</th>
           <td>2</td>
           <td>Argon</td>
-          <td>39.948000</td>
+          <td>39.948</td>
+          <td>element</td>
+        </tr>
+        <tr>
+          <th>C</th>
+          <td>3</td>
+          <td>Carbon</td>
+          <td>12.011</td>
+          <td>element</td>
+        </tr>
+        <tr>
+          <th>Ca</th>
+          <td>4</td>
+          <td>Calcium</td>
+          <td>40.078</td>
           <td>element</td>
         </tr>
       </tbody>
     </table>
     <br />
     <br />
+
 
 Volume mixing ratio
 +++++++++++++++++++
