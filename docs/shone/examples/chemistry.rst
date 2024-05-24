@@ -45,9 +45,7 @@ Let's construct a atmospheric structure (temperature-pressure curve):
         ylabel='Pressure [bar]'
     )
 
-Radiative transfer calculations require the mixing ratio of each atmospheric species, which are
-functions of temperature, pressure, atmospheric metallicity, and C/O ratio. We specify these
-parameters like so:
+Radiative transfer calculations require the mixing ratios, which are the proportions of each species that exist within the atmosphere. These ratios are functions of temperature, pressure, atmospheric metallicity, and the C/O ratio. If we provide these value to FastChem we'll obtain the ratios. We specify these parameters as follows:
 
 .. code-block:: python
 
