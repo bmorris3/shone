@@ -64,7 +64,7 @@ species with `~shone.chemistry.FastchemWrapper.get_species`:
 .. code-block:: python
 
     species_table = chem.get_species()
-    print(species_table[:3])  # first three species
+    print(species_table[:4])  # first four species
 
 Returns a table like this:
 
