@@ -244,7 +244,6 @@ Now let's print a table of volume mixing ratios for the first five species:
 .. code-block:: python
 
     from shone.chemistry import get_fastchem_interpolator, fastchem_species_table
-    from astropy.table import Table
 
     # load the jitted chemistry interpolator:
     interp_chem = get_fastchem_interpolator()
