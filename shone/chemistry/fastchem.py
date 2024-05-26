@@ -5,7 +5,6 @@ from tqdm.auto import tqdm
 import xarray as xr
 from jax import numpy as jnp, jit
 
-from astropy.constants import m_p, k_B
 from astropy.table import Table
 from pyfastchem import (
     FastChem, FastChemInput, FastChemOutput
@@ -13,11 +12,7 @@ from pyfastchem import (
 from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 
 from shone.config import shone_dir
-
-
-# constants in cgs:
-m_p = m_p.cgs.value
-k_B = k_B.cgs.value
+from shone.constants import bar_to_dyn_cm2, k_B
 
 fastchem_grid_filename = 'fastchem_grid.nc'
 
@@ -26,7 +21,12 @@ __all__ = [
     'build_fastchem_grid',
     'get_fastchem_interpolator',
     'fastchem_species_table',
+    'number_density',
+    'mass_density',
+    'mean_molecular_weight',
 ]
+
+cached_species_table = None
 
 
 class FastchemWrapper:
@@ -142,7 +142,7 @@ class FastchemWrapper:
         self.fastchem.calcDensities(self._input_data, output_data)
         n_densities = np.array(output_data.number_densities)  # [cm-3]
 
-        bar_to_cgs = 1e6  # [dyn / bar]
+        bar_to_cgs = 1e6  # [dyn/cm^2 per bar]
         gas_number_density = bar_to_cgs * self.pressure / (k_B * self.temperature)  # [cm-3]
         vmr = n_densities / gas_number_density[:, None]
 
@@ -152,40 +152,13 @@ class FastchemWrapper:
         """
         Return an astropy table with names, symbols, weights and
         indices for each species in this FastChem instance.
+
+        Returns
+        -------
+        species_table : `~astropy.table.Table`
+            Table of FastChem species.
         """
-        element_symbols = []
-        gas_species_symbols = []
-        idx = 0
-        while self.fastchem.getElementSymbol(idx) != '':
-            element_symbols.append(
-                [idx, self.fastchem.getElementName(idx),
-                 self.fastchem.getElementSymbol(idx),
-                 self.fastchem.getElementWeight(idx),
-                 'element',
-                ]
-            )
-            idx += 1
-
-        while self.fastchem.getGasSpeciesSymbol(idx) != '':
-            gas_species_symbols.append(
-                [idx, self.fastchem.getGasSpeciesName(idx),
-                 self.fastchem.getGasSpeciesSymbol(idx),
-                 self.fastchem.getGasSpeciesWeight(idx),
-                 'gas species',
-                ]
-            )
-            idx += 1
-
-        symbols = list(element_symbols)
-        symbols.extend(gas_species_symbols)
-
-        fastchem_species = Table(
-            rows=symbols,
-            names='index name symbol weight type'.split()
-        )
-        fastchem_species.add_index('symbol')
-
-        return fastchem_species
+        return _fastchem_species_table(self.fastchem)
 
     def get_weights(self):
         """
@@ -385,7 +358,7 @@ def get_fastchem_interpolator(path=None):
     return interp
 
 
-def fastchem_species_table():
+def _fastchem_species_table(fastchem=None):
     """
     Return a table of the species included in FastChem.
 
@@ -396,4 +369,107 @@ def fastchem_species_table():
         and type (element or molecule).
     """
     fastchem = FastchemWrapper(np.array([2300]), np.array([1]))
-    return fastchem.get_species()
+
+    element_symbols = []
+    gas_species_symbols = []
+    idx = 0
+    while fastchem.getElementSymbol(idx) != '':
+        element_symbols.append([
+            idx,
+            fastchem.getElementName(idx),
+            fastchem.getElementSymbol(idx),
+            fastchem.getElementWeight(idx),
+            'element',
+        ])
+        idx += 1
+
+    while fastchem.getGasSpeciesSymbol(idx) != '':
+        gas_species_symbols.append([
+            idx,
+            fastchem.getGasSpeciesName(idx),
+            fastchem.getGasSpeciesSymbol(idx),
+            fastchem.getGasSpeciesWeight(idx),
+            'gas species',
+        ])
+        idx += 1
+
+    symbols = list(element_symbols)
+    symbols.extend(gas_species_symbols)
+
+    fastchem_species = Table(
+        rows=symbols,
+        names='index name symbol weight type'.split()
+    )
+    fastchem_species.add_index('symbol')
+
+    return fastchem_species
+
+
+def number_density(temperature, pressure):
+    """
+    Number density of all atmospheric species.
+
+    Parameters
+    ----------
+    temperature : array
+        Temperature [K].
+    pressure : array
+        Pressure [bar].
+
+    Returns
+    -------
+    n : array
+        Number density at each pressure and temperature.
+    """
+    return pressure * bar_to_dyn_cm2 / (k_B * temperature)
+
+
+def mass_density(temperature, pressure, vmr):
+    species_table = fastchem_species_table()
+    n_total = number_density(temperature, pressure)
+    rho = jnp.sum(
+        vmr * n_total[:, None] *
+        species_table['weight'],
+        axis=1
+    )
+    return rho
+
+
+def mean_molecular_weight(temperature, pressure, vmr):
+    """
+    Mean molecular weight [AMU] at each pressure and
+    temperature for an ideal gas.
+
+    Parameters
+    ----------
+    temperature : array
+        Temperature [K].
+    pressure : array
+        Pressure [bar].
+    vmr : array of shape `(M, N)`
+        Volume mixing ratio for `M` pressure layers and `N` species.
+
+    Returns
+    -------
+    mean_molecular_weight_amu : array
+        Mean molecular weight [AMU].
+    """
+    rho = mass_density(temperature, pressure, vmr)
+    mean_molecular_weight_amu = rho / (pressure * bar_to_dyn_cm2 / (k_B * temperature))
+    return mean_molecular_weight_amu
+
+
+def fastchem_species_table():
+    """
+    Return an astropy table with names, symbols, weights and
+    indices for each species in a generic instance of FastChem.
+
+    Returns
+    -------
+    species_table : `~astropy.table.Table`
+        Table of FastChem species.
+    """
+    global cached_species_table
+    if cached_species_table is None:
+        cached_species_table = _fastchem_species_table()
+    return cached_species_table

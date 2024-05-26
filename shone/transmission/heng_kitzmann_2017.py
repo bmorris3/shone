@@ -1,4 +1,5 @@
 from jax import numpy as jnp
+import astropy.units as u
 from astropy.constants import m_p, k_B
 
 __all__ = ['transmission_radius_isothermal']
@@ -7,6 +8,8 @@ __all__ = ['transmission_radius_isothermal']
 # constants in cgs:
 m_p = m_p.cgs.value
 k_B = k_B.cgs.value
+bar_to_dyn_cm2 = (1 * u.bar).cgs.value
+k_B_over_m_p = 82543997.56725217  # [cgs]
 
 
 def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
@@ -23,13 +26,13 @@ def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
     R_0 : float
         Reference radius [cm].
     P_0 : float
-        Reference pressure [dyn].
+        Reference pressure [dyn / cm^2].
     T_0 : float
         Reference temperature [K].
     mmw : float
         Mean molecular weight [AMU].
     g : float
-        Surface gravity [cm/s^2], assumed to be uniform
+        Surface gravity [cm / s^2], assumed to be uniform
         with height.
 
     Returns
@@ -49,7 +52,6 @@ def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
 
     # store the ratio of the Boltzmann constant to the
     # mass of a proton, both in cgs. Helpful for float precision:
-    k_B_over_m_p = 82543997.56725217  # [cgs]
     H = T_0 / (mmw_amu * g) * k_B_over_m_p  # pressure scale height
 
     # Heng & Kitzmann (2017) Equation 12.
