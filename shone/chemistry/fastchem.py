@@ -334,20 +334,20 @@ def get_fastchem_interpolator(path=None):
         """
         Parameters
         ----------
-        temperature : float
+        temperature : float or array
             Temperature value.
-        pressure : float
+        pressure : float or array
             Pressure value.
         log_m_to_h : float
             [M/H] value.
-        log_c_to_o : array-like
+        log_c_to_o : float
             [C/O] value.
         """
         interp_point = jnp.column_stack([
             pressure,
             temperature,
-            log_m_to_h,
-            log_c_to_o,
+            jnp.broadcast_to(log_m_to_h, temperature.shape),
+            jnp.broadcast_to(log_c_to_o, temperature.shape),
         ]).astype(jnp.float32)
 
         return nd_interp(
@@ -370,7 +370,8 @@ def _fastchem_species_table(fastchem=None):
         Table with columns: index, name, symbol, weight,
         and type (element or molecule).
     """
-    fastchem = FastchemWrapper(np.array([2300]), np.array([1])).fastchem
+    if fastchem is None:
+        fastchem = FastchemWrapper(np.array([2300]), np.array([1])).fastchem
 
     element_symbols = []
     gas_species_symbols = []
