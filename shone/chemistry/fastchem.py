@@ -14,7 +14,6 @@ from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_
 from shone.config import shone_dir
 from shone.constants import bar_to_dyn_cm2, k_B
 
-fastchem_grid_filename = 'fastchem_grid.nc'
 
 __all__ = [
     'FastchemWrapper',
@@ -26,6 +25,8 @@ __all__ = [
     'mean_molecular_weight',
 ]
 
+
+fastchem_grid_filename = 'fastchem_grid.nc'
 cached_species_table = None
 
 
@@ -57,7 +58,7 @@ class FastchemWrapper:
         temperature,
         pressure,
         metallicity=1,
-        c_to_o_ratio=1,
+        c_to_o_ratio=0.5888,
         elemental_abundances_path=None,
         fit_coefficients_path=None
     ):
@@ -74,7 +75,9 @@ class FastchemWrapper:
             M/H expressed as a linear factor (not log).
         c_to_o_ratio : float
             Carbon to oxygen ratio expressed as a linear
-            factor (not log).
+            factor (not log). Default is the C/O ratio of
+            the solar abundances from Asplund et al. (2020):
+            `0.5888`.
         """
         self.temperature = temperature
         self.pressure = pressure
@@ -142,8 +145,7 @@ class FastchemWrapper:
         self.fastchem.calcDensities(self._input_data, output_data)
         n_densities = np.array(output_data.number_densities)  # [cm-3]
 
-        bar_to_cgs = 1e6  # [dyn/cm^2 per bar]
-        gas_number_density = bar_to_cgs * self.pressure / (k_B * self.temperature)  # [cm-3]
+        gas_number_density = self.pressure * bar_to_dyn_cm2 / (k_B * self.temperature)  # [cm-3]
         vmr = n_densities / gas_number_density[:, None]
 
         return vmr
@@ -368,7 +370,7 @@ def _fastchem_species_table(fastchem=None):
         Table with columns: index, name, symbol, weight,
         and type (element or molecule).
     """
-    fastchem = FastchemWrapper(np.array([2300]), np.array([1]))
+    fastchem = FastchemWrapper(np.array([2300]), np.array([1])).fastchem
 
     element_symbols = []
     gas_species_symbols = []
@@ -425,6 +427,7 @@ def number_density(temperature, pressure):
 
 
 def mass_density(temperature, pressure, vmr):
+    # [AMU / cm3]
     species_table = fastchem_species_table()
     n_total = number_density(temperature, pressure)
     rho = jnp.sum(

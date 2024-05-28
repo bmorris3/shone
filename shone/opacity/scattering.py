@@ -1,4 +1,5 @@
 import numpy as np
+from jax import jit
 
 # number densities at reference p-T
 n_ref_H2 = 26867800  # [um^-3]
@@ -13,6 +14,7 @@ __all__ = [
 ]
 
 
+@jit
 def refractive_index_H2(wavelength):
     """
     Real part of the refractive index of H2.
@@ -22,7 +24,7 @@ def refractive_index_H2(wavelength):
     Parameters
     ----------
     wavelength : array
-        Wavelength in microns.
+        Wavelength [µm].
     """
     # Malik 2017 Eqn 17
     return 13.58e-5 * (
@@ -30,6 +32,7 @@ def refractive_index_H2(wavelength):
     ) + 1
 
 
+@jit
 def refractive_index_He(wavelength):
     """
     Real part of the refractive index of He.
@@ -39,7 +42,7 @@ def refractive_index_He(wavelength):
     Parameters
     ----------
     wavelength : array
-        Wavelength in microns.
+        Wavelength [µm].
     """
     # Deitrick 2020 Eqn C3
     return 1e-8 * (2283 +
@@ -47,6 +50,7 @@ def refractive_index_He(wavelength):
     ) + 1
 
 
+@jit
 def rayleigh_cross_section_H2(wavelength):
     """
     Rayleigh scattering cross-section of H2.
@@ -56,7 +60,7 @@ def rayleigh_cross_section_H2(wavelength):
     Parameters
     ----------
     wavelength : array
-        Wavelength in microns.
+        Wavelength [µm].
 
     Returns
     -------
@@ -71,6 +75,7 @@ def rayleigh_cross_section_H2(wavelength):
     )
 
 
+@jit
 def rayleigh_cross_section_He(wavelength):
     """
     Rayleigh scattering cross-section of He.
@@ -80,7 +85,7 @@ def rayleigh_cross_section_He(wavelength):
     Parameters
     ----------
     wavelength : array
-        Wavelength in microns.
+        Wavelength [µm].
 
     Returns
     -------

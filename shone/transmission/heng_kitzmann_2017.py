@@ -1,4 +1,4 @@
-from jax import numpy as jnp
+from jax import numpy as jnp, jit
 import astropy.units as u
 from astropy.constants import m_p, k_B
 
@@ -12,6 +12,7 @@ bar_to_dyn_cm2 = (1 * u.bar).cgs.value
 k_B_over_m_p = 82543997.56725217  # [cgs]
 
 
+@jit
 def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
     """
     Compute the radius spectrum for planet observed in transmission
@@ -21,7 +22,7 @@ def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
 
     Parameters
     ----------
-    kappa : array-like
+    kappa : array
         Opacity [cm^2/g] as a function of wavelength.
     R_0 : float
         Reference radius [cm].
@@ -37,13 +38,14 @@ def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
 
     Returns
     -------
-    transmission_radius : array-like
+    transmission_radius : array
         Transmission radius [cm] as a function of wavelength.
 
     References
     ----------
-    .. [1] `Heng & Kitzmann (2017)
-            <https://ui.adsabs.harvard.edu/abs/2017MNRAS.470.2972H/abstract>`_.
+    .. [1] `Heng, K. & Kitzmann, D. 2017, Monthly Notices of the Royal
+           Astronomical Society, 470, 2972. doi:10.1093/mnras/stx1453
+           <https://ui.adsabs.harvard.edu/abs/2017MNRAS.470.2972H/abstract>`_.
     """
     gamma = 0.57721  # Euler-Mascheroni constant
     mmw_amu = jnp.clip(mmw, 1, 100)  # [amu]
