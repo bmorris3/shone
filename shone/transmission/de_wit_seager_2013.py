@@ -1,8 +1,3 @@
-from functools import partial
-
-from jax import config
-config.update('jax_debug_nans', True)
-
 import numpy as np
 from jax import numpy as jnp, jit
 from jax.scipy.integrate import trapezoid
@@ -179,7 +174,6 @@ def transmission_radius(
     # compute scattering cross-sections:
     scatter_H2 = rayleigh_cross_section_H2(wavelength)
     scatter_He = rayleigh_cross_section_He(wavelength)
-    weights_scatter = weights_amu[None, scatter_indices]
     sigma_scatter = jnp.vstack([scatter_H2, scatter_He])  # shape (N_scatterers, N_wavelengths)
 
     # compute the length of a transmission chord through the atmosphere
@@ -191,7 +185,7 @@ def transmission_radius(
 
     # compute the optical_depth due to absorption
     absorption_coeff = (
-        opacity *                                   # (N_species, N_pressures, N_wavelengths) [cm2/g]
+        opacity *                                   # (N_species, N_press, N_wavelength) [cm2/g]
         vmr[:, vmr_indices].T[..., None] *          # (N_species, N_pressures, 1) [None]
         n_total[None, :, None] *                    # (1, N_pressures, 1) [1/cm3]
         weights_amu[vmr_indices, None, None] * m_p  # (N_species, 1, 1) [g]
