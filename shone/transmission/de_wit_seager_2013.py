@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as np
 from jax import numpy as jnp, jit
 from jax.scipy.integrate import trapezoid
@@ -125,11 +126,13 @@ def transmission_chord_length(temperature, pressure, g, mmw, R_p0):
     return jnp.where(~jnp.isnan(dx), dx, 0)
 
 
-@jit
+@partial(jit, static_argnames="rayleigh_scattering absorption".split())
 def transmission_radius(
     wavelength, temperature, pressure,
     g, R_p0, opacity,
-    vmr, vmr_indices
+    vmr, vmr_indices,
+    rayleigh_scattering=True,
+    absorption=True,
 ):
     """
     Compute the radius spectrum for planet observed in transmission.
@@ -155,6 +158,14 @@ def transmission_radius(
     vmr : array
         Volume mixing ratios for each pressure and each species
     vmr_indices : array
+        Indices of the columns of the ``vmr`` FastChem output matrix
+        corresponding to each opacity in ``opacity``.
+    rayleigh_scattering : bool
+        Include the contribution to the optical depth from
+        Rayleigh scattering. Default is True.
+    absorption : bool
+        Include the contribution to the optical depth from
+        absorption by atoms, ions, and molecules. Default is True.
 
     Returns
     -------
@@ -166,6 +177,16 @@ def transmission_radius(
     .. [1] `de Wit, J. & Seager, S. 2013, Science, 342, 1473. doi:10.1126/science.1245450
            <https://ui.adsabs.harvard.edu/abs/2013Sci...342.1473D/abstract>`_
     """
+    # validate inputs to avoid nonsense:
+    assert isinstance(absorption, bool), (
+        f"`{absorption=}` argument must be "
+        f"boolean; got type {type(absorption)}."
+    )
+    assert isinstance(rayleigh_scattering, bool), (
+        f"`{rayleigh_scattering=}` argument must be "
+        f"boolean; got type {type(rayleigh_scattering)}."
+    )
+
     # compute number densities of all species and for scattering species:
     mmw = mean_molecular_weight(temperature, pressure, vmr)
     n_total = number_density(temperature, pressure)
@@ -194,7 +215,11 @@ def transmission_radius(
     tau_absorb = absorption_coeff * dx[:, None]  # (N_pressures, N_wavelengths)
 
     # total optical depth is from absorption and scattering:
-    tau = tau_absorb + tau_scatter
+    tau = (
+        # multiplication here allows for toggling each component:
+        int(absorption) * tau_absorb +
+        int(rayleigh_scattering) * tau_scatter
+    )
 
     # the planet radius at each pressure layer:
     radius = radius_at_layer(temperature, pressure, g, mmw, R_p0)
