@@ -15,16 +15,19 @@ def test_chemical_names_manipulation_0(isotopologue_name, species_name):
     assert isotopologue_to_species(isotopologue_name) == species_name
 
 
-@pytest.mark.parametrize("species_name, fastchem_name", (
+@pytest.mark.parametrize("species_name, charge, fastchem_name", (
     zip(['H2O', 'TiO', 'VO', 'Na', 'K', 'CO', 'CrH',
-         'CF4O', 'Al2Cl6', 'AlNaF4', 'ClAlF2'],
+         'CF4O', 'Al2Cl6', 'AlNaF4', 'ClAlF2', 'Ti', 'Ti', 'Ti'],
+        [None, None, None, None, None, None,
+         None, None, None, None, None, None, 1, -1],
         ['H2O1', 'O1Ti1', 'O1V1', 'Na', 'K', 'C1O1', 'Cr1H1',
-         'C1F4O1', 'Al2Cl6', 'Al1F4Na1', 'Al1Cl1F2'])
+         'C1F4O1', 'Al2Cl6', 'Al1F4Na1', 'Al1Cl1F2', 'Ti', 'Ti1+', 'Ti1-']
+    )
 ),)
-def test_chemical_names_manipulation_1(species_name, fastchem_name):
+def test_chemical_names_manipulation_1(species_name, charge, fastchem_name):
     # Test conversion of common species name to a fastchem name which can
     # be called in fastchem.getSpeciesIndex(fastchem_name)
-    assert species_name_to_fastchem_name(species_name) == fastchem_name
+    assert species_name_to_fastchem_name(species_name, charge) == fastchem_name
 
 
 @pytest.mark.parametrize("species_name, iso_name", (
