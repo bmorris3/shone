@@ -112,9 +112,9 @@ def species_name_to_fastchem_name(species, charge=None, return_mass=False):
         # check charge and add it to the name if it is charged:
         correct_notation = correct_notation[:2]
         if charge>0:
-            correct_notation = correct_notation[:2] + f'{charge}+'
+            correct_notation += f'{charge}+'
         elif charge<0:
-            correct_notation = correct_notation[:2] + f'{np.abs(charge)}-'
+            correct_notation += f'{abs(charge)}-'
 
     if return_mass:
         # Optionally return mass of species
