@@ -1,6 +1,7 @@
 import os
 from functools import partial
 from glob import glob
+import warnings
 
 import numpy as np
 import xarray as xr
@@ -202,8 +203,21 @@ class Opacity:
         name : str
             Name of the opacity archive to load.
         """
-        path = os.path.join(tiny_archives_dir, f"{name}_reconstructed.nc")
-        return cls(path=path)
+        from shone.opacity.archive import (
+            pkg_data_directory, unpack_tiny_opacity_archives
+        )
+
+        nc_path = os.path.join(tiny_archives_dir, f"{name}_reconstructed.nc")
+        npy_path = os.path.join(pkg_data_directory, f'{name}_opacity.npy')
+
+        # if the npy archive exists but the netCDF hasn't been written yet:
+        if not os.path.exists(nc_path) and os.path.exists(npy_path):
+            warnings.warn(f"This tiny opacity archive hasn't yet been reconstructed, "
+                          f"so it will be reconstructed now. This call will be "
+                          f"faster the next time you run it.")
+            unpack_tiny_opacity_archives([name])
+
+        return cls(path=nc_path)
 
 
 def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
