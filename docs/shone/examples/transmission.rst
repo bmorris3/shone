@@ -1,11 +1,26 @@
-.. _simple_transmission_spectrum:
+.. _transmission_spectrum:
 
-Simple transmission spectrum
-============================
+********************
+Transmission spectra
+********************
+
+.. contents:: Contents
+   :depth: 2
+   :local:
+   :backlinks: none
+
+
+.. _transmission_heng_kitzmann:
+
+Isothermal/isobaric transmission spectra
+========================================
 
 Let's compute the transmission spectrum for an Earth-like planet with
-a single-species atmosphere using the isothermal approximation from
-`Heng & Kitzmann (2017) <https://ui.adsabs.harvard.edu/abs/2017MNRAS.470.2972H/abstract>`_.
+a single-species atmosphere using the isothermal and isobaric
+approximations from `Heng & Kitzmann (2017)
+<https://ui.adsabs.harvard.edu/abs/2017MNRAS.470.2972H/abstract>`_.
+The full transmission model is demonstrated below in :ref:`transmission_de_wit`.
+
 We'll load an opacity grid and interpolate for the opacity at several temperatures,
 add a gray cloud opacity, and compute a transmission spectrum.
 
@@ -31,7 +46,7 @@ one atmospheric species in the near-infrared.
     from astropy.constants import m_p
     
     from shone.opacity import Opacity, generate_synthetic_opacity
-    from shone.transmission import transmission_radius_isothermal
+    from shone.transmission import heng_kitzmann_2017
 
 For each species to include in the atmosphere, you need to download an
 opacity grid for that species. We load and interpolate opacity grids using
@@ -195,7 +210,7 @@ Compute a transmission spectrum
 
 We can compute a transmission spectrum for an Earth-sized planet
 transiting a Sun-like star using
-`~shone.transmission.transmission_radius_isothermal`:
+`~shone.transmission.heng_kitzmann_2017.transmission_radius_isothermal`:
 
 .. code-block:: python
 
@@ -211,7 +226,9 @@ transiting a Sun-like star using
     cgs_args = (arg.cgs.value for arg in args)
     
     # compute the planetary radius as a function of wavelength:
-    Rp = transmission_radius_isothermal(example_opacity + kappa_cloud, *cgs_args)
+    Rp = heng_kitzmann_2017.transmission_radius_isothermal(
+        example_opacity + kappa_cloud, *cgs_args
+    )
     
     # convert to transit depth:
     Rstar = (1 * u.R_sun).cgs.value
@@ -236,7 +253,7 @@ Now let's plot the result:
     import astropy.units as u
     from astropy.constants import m_p
 
-    from shone.transmission import transmission_radius_isothermal
+    from shone.transmission import heng_kitzmann_2017
     from shone.opacity import Opacity, generate_synthetic_opacity
 
     generate_synthetic_opacity()
@@ -272,7 +289,7 @@ Now let's plot the result:
     cgs_args = (arg.cgs.value for arg in args)
 
     # compute the planetary radius as a function of wavelength:
-    Rp = transmission_radius_isothermal(example_opacity + kappa_cloud, *cgs_args)
+    Rp = heng_kitzmann_2017.transmission_radius_isothermal(example_opacity + kappa_cloud, *cgs_args)
 
     # convert to transit depth:
     Rstar = (1 * u.R_sun).cgs.value
@@ -285,3 +302,57 @@ Now let's plot the result:
         xlabel='Wavelength [µm]',
         ylabel='Transit depth [ppm]'
     )
+
+.. _transmission_de_wit:
+
+General transmission spectra
+============================
+
+Above we demonstrated :ref:`transmission_heng_kitzmann` with a semi-analytic approach.
+In this section we'll use the general transmission spectrum model from
+`de Wit & Seager (2013) <https://ui.adsabs.harvard.edu/abs/2013Sci...342.1473D/abstract>`_.
+
+
+.. plot::
+
+    import numpy as np
+    import astropy.units as u
+
+    from jax import numpy as jnp
+
+    from shone.chemistry import FastchemWrapper
+    from shone.opacity import generate_synthetic_opacity
+    from shone.transmission import de_wit_seager_2013
+
+    opacity = generate_synthetic_opacity()
+    interp_opacity = opacity.get_interpolator()
+
+    wavelength = np.geomspace(0.5, 5, 500)
+    pressure = np.geomspace(1e-6, 1e3)  # [bar]
+    temperature = 500 * np.ones_like(pressure)  # [K]
+
+    P_0 = pressure[30]
+    T_0 = temperature[30]
+    R_0 = (1 * u.R_jup).cgs.value
+    mmw = 2.328  # [AMU]
+    g = 3000  # [cm/s2]
+    weights_amu = jnp.array([3])  # [AMU]
+    synth_vmr = 1e-8
+
+    opacity_samples = interp_opacity(wavelength, temperature, pressure)
+    chem = FastchemWrapper(temperature, pressure)
+
+    vmr = chem.vmr()
+    vmr = np.hstack([vmr[:, :-1], synth_vmr * np.ones((pressure.size, 1))])
+    vmr_indices = [vmr.shape[1] - 1]
+
+    R_p = de_wit_seager_2013.transmission_radius(
+        wavelength, temperature, pressure, g, R_0,
+        opacity_samples[None, ...], vmr, vmr_indices, weights_amu,
+        rayleigh_scattering=False
+    )
+
+    # renormalize the isotheraml transmission spectrum for
+    # measuring the differences between spectra without considering
+    # baseline offsets:
+    R_p_isothermal_renorm = R_p_isothermal * (R_p / R_p_isothermal).mean()

@@ -1,6 +1,6 @@
 from functools import partial
-from jax import numpy as jnp, jit, lax
 
+from jax import numpy as jnp, jit, lax
 
 __all__ = ['bin_spectrum']
 

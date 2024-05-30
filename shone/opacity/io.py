@@ -9,7 +9,7 @@ from astropy.table import Table
 from jax import numpy as jnp, jit, vmap
 from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 
-from shone.config import shone_dir
+from shone.config import shone_dir, tiny_archives_dir
 from shone.chemistry import isotopologue_to_species
 
 __all__ = ['Opacity', 'generate_synthetic_opacity']
@@ -180,7 +180,7 @@ class Opacity:
         Parameters
         ----------
         name : str
-            Name of the opacity file to load. Since the "name" entry
+            Name of the opacity species to load. Since the "name" entry
             isn't guaranteed to be unique, an error is raised
             if more than one file is available by this name.
         """
@@ -191,6 +191,19 @@ class Opacity:
             raise ValueError(f"More than one of the available files has "
                              f"a species named {name}.")
         return cls(path=table_row['path'][0])
+
+    @classmethod
+    def load_demo_species(cls, name):
+        """
+        Load a demo opacity archive.
+
+        Parameters
+        ----------
+        name : str
+            Name of the opacity archive to load.
+        """
+        path = os.path.join(tiny_archives_dir, f"{name}_reconstructed.nc")
+        return cls(path=path)
 
 
 def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):

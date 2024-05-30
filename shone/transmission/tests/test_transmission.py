@@ -1,7 +1,7 @@
 import numpy as np
 import astropy.units as u
 
-from jax import numpy as jnp, vmap
+from jax import numpy as jnp
 
 from shone.chemistry import FastchemWrapper
 from shone.opacity import generate_synthetic_opacity
@@ -38,9 +38,7 @@ def test_hk_vs_dws():
         kappa, R_0, P_0, T_0, mmw, g
     )
 
-    opacity_samples = vmap(
-        lambda t, p: interp_opacity(wavelength, t, p)
-    )(temperature, pressure)
+    opacity_samples = interp_opacity(wavelength, temperature, pressure)
     chem = FastchemWrapper(temperature, pressure)
 
     vmr = chem.vmr()
