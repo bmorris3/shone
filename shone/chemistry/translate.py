@@ -103,10 +103,10 @@ def species_name_to_fastchem_name(species, charge=None, return_mass=False):
         # this means it is an atom with only 1 letter, like K, or P. 
         correct_notation = correct_notation[0]
         # check charge and add it to the name if it is charged:
-        if charge>0:
-            correct_notation = correct_notation[0] + f'{charge}+'
-        elif charge<0:
-            correct_notation = correct_notation[0] + f'{np.abs(charge)}-'
+        if charge > 0:
+            correct_notation += f'{charge}+'
+        elif charge < 0:
+            correct_notation += f'{abs(charge)}-'
     elif len(correct_notation) == 3 and correct_notation.endswith('1'):
         # this means it is an atom with 2 letters, like Na, or Ti. 
         # check charge and add it to the name if it is charged:
