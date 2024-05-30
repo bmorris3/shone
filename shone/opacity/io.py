@@ -6,7 +6,7 @@ import numpy as np
 import xarray as xr
 from astropy.table import Table
 
-from jax import numpy as jnp, jit
+from jax import numpy as jnp, jit, vmap
 from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 
 from shone.config import shone_dir
@@ -72,7 +72,16 @@ class Opacity:
                 axis=0
             )
 
-        return interp
+        def interp_vmap(wavelength, temperature, pressure):
+            temperature = jnp.atleast_1d(temperature)
+            pressure = jnp.atleast_1d(pressure)
+            return jnp.squeeze(
+                vmap(
+                    lambda t, p: interp(wavelength, t, p)
+                )(temperature, pressure)
+            )
+
+        return interp_vmap
 
     @classmethod
     def get_available_species(self, shone_directory=None):
