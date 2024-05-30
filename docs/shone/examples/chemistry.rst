@@ -100,7 +100,7 @@ Returns a table like this:
           <th>Al</th>
           <td>1</td>
           <td>Aluminium</td>
-          <td>26.9815385</td>
+          <td>26.98</td>
           <td>element</td>
         </tr>
         <tr>
