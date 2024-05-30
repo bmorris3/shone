@@ -74,7 +74,8 @@ def species_name_to_fastchem_name(species, charge=None, return_mass=False):
     species : str
         Generic name, like "H2O" or "Ti".
     
-    charge: int
+    charge: None or int
+        If ``species`` is an atom, specify the charge.
 
     Returns
     -------
