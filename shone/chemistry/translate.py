@@ -62,7 +62,7 @@ def isotopologue_to_mass(isotopologue):
     return (mass if mass != 0 else getattr(elements, isotopologue).mass) * u.u
 
 
-def species_name_to_fastchem_name(species, charge, return_mass=False):
+def species_name_to_fastchem_name(species, charge=None, return_mass=False):
     """
     Convert generic species name, like "H2O" or "ClAlF2", to
     Hill notation for FastChem, like "H2O1" or "Al1Cl1F2".
