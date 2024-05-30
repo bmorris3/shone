@@ -93,7 +93,7 @@ Returns a table like this:
           <th>e-</th>
           <td>0</td>
           <td>Electron</td>
-          <td>0.00054857990907</td>
+          <td>0.000549</td>
           <td>element</td>
         </tr>
         <tr>
