@@ -115,9 +115,6 @@ def species_name_to_fastchem_name(species, charge, return_mass=False):
         elif charge<0:
             correct_notation = correct_notation[:2] + f'{np.abs(charge)}-'
 
-    import pdb
-    pdb.set_trace()
-
     if return_mass:
         # Optionally return mass of species
         mass = 0
