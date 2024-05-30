@@ -19,7 +19,7 @@ Let's construct a atmospheric structure (temperature-pressure curve):
     import matplotlib.pyplot as plt
 
     pressure = np.geomspace(1e-6, 10, 15)  # [bar]
-    temperature = 2300 * (np.geomspace(1e-6, 10, pressure.size) / 0.1) ** 0.1  # [K]
+    temperature = 2300 * (pressure / 0.1) ** 0.1  # [K]
 
     ax = plt.gca()
     ax.semilogy(temperature, pressure)
