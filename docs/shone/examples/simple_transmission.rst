@@ -132,20 +132,15 @@ Now let’s specify an opacity for a gray cloud:
 
 
 Suppose we want to compute transmission spectra for several atmospheric
-temperatures. The function ``interp_opacity`` does not take vector
-arguments for temperature or pressure, but we can easily vectorize it
-with `~jax.vmap` like this:
+temperatures:
 
 .. code-block:: python
 
-    from jax import vmap
-
     # interpolate for a range of wavelengths at one pressure and temperature:
-    temperature = np.array([200, 400, 600, 800])
+    temperature = np.array([200, 400, 600, 800])  # [K]
+    pressure = np.ones_like(temperature)  # [bar]
 
-    example_opacity = vmap(
-        lambda temp: interp_opacity(wavelength, temp, pressure)
-    )(temperature)
+    example_opacity = interp_opacity(wavelength, temperature, pressure)
 
 and now let's plot the result:
 
@@ -164,8 +159,6 @@ and now let's plot the result:
 
 .. plot::
 
-    from jax import vmap
-
     import matplotlib.pyplot as plt
     from shone.opacity import Opacity, generate_synthetic_opacity
 
@@ -178,14 +171,13 @@ and now let's plot the result:
     interp_opacity = opacity.get_interpolator()
 
     wavelength = np.linspace(1, 5, 500)  # [µm]
-    pressure = 1  # [bar]
-    # interpolate for a range of wavelengths at one pressure and temperature:
+    temperature = np.array([200, 400, 600, 800])  # [K]
+    pressure = np.ones_like(temperature)  # [bar]
 
+    # interpolate for a range of wavelengths at one pressure and temperature:
     temperature = np.array([200, 400, 600, 800])
     label = [f"{t} K" for t in temperature]
-    example_opacity = vmap(
-        lambda temp: interp_opacity(wavelength, temp, pressure)
-    )(temperature)
+    example_opacity = interp_opacity(wavelength, temperature, pressure)
 
     kappa_cloud = 5e-2  # [cm2/g]
 
@@ -239,7 +231,6 @@ Now let's plot the result:
 
 .. plot::
 
-    from jax import vmap
     import matplotlib.pyplot as plt
 
     import astropy.units as u
@@ -257,16 +248,15 @@ Now let's plot the result:
     interp_opacity = opacity.get_interpolator()
 
     wavelength = np.linspace(1, 5, 500)  # [µm]
-    pressure = 1  # [bar]
 
-    from jax import vmap
+    temperature = np.array([200, 400, 600, 800])  # [K]
+    pressure = np.ones_like(temperature)  # [bar]
+
 
     temperature = np.array([200, 400, 600, 800])
     label = [f"{t} K" for t in temperature]
 
-    example_opacity = vmap(
-        lambda temp: interp_opacity(wavelength, temp, pressure)
-    )(temperature)
+    example_opacity = interp_opacity(wavelength, temperature, pressure)
 
     kappa_cloud = 5e-2  # [cm2/g]
 
