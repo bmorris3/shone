@@ -27,7 +27,7 @@ def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
     R_0 : float
         Reference radius [cm].
     P_0 : float
-        Reference pressure [dyn / cm^2].
+        Reference pressure [bar].
     T_0 : float
         Reference temperature [K].
     mmw : float
@@ -51,6 +51,7 @@ def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
     mmw_amu = jnp.clip(mmw, 1, 100)  # [amu]
     T_0 = jnp.clip(T_0, 100, 50_000)  # [K]
     g = jnp.clip(g, 10, 1e10)  # [cm / s^2]
+    P_0 = P_0 * bar_to_dyn_cm2  # [dyn / cm^2]
 
     # store the ratio of the Boltzmann constant to the
     # mass of a proton, both in cgs. Helpful for float precision:

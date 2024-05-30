@@ -131,6 +131,7 @@ def transmission_radius(
     wavelength, temperature, pressure,
     g, R_p0, opacity,
     vmr, vmr_indices,
+    weights_amu,
     rayleigh_scattering=True,
     absorption=True,
 ):
@@ -160,6 +161,8 @@ def transmission_radius(
     vmr_indices : array
         Indices of the columns of the ``vmr`` FastChem output matrix
         corresponding to each opacity in ``opacity``.
+    weights_amu : array
+        Weights of each species in ``vmr`` [AMU].
     rayleigh_scattering : bool
         Include the contribution to the optical depth from
         Rayleigh scattering. Default is True.
@@ -207,7 +210,7 @@ def transmission_radius(
     # compute the optical_depth due to absorption
     absorption_coeff = (
         opacity *                                   # (N_species, N_press, N_wavelength) [cm2/g]
-        vmr[:, vmr_indices].T[..., None] *          # (N_species, N_pressures, 1) [None]
+        vmr[:, vmr_indices].T[..., None] *          # (N_species, N_pressures, 1) [unitless]
         n_total[None, :, None] *                    # (1, N_pressures, 1) [1/cm3]
         weights_amu[vmr_indices, None, None] * m_p  # (N_species, 1, 1) [g]
     ).sum(0)  # [1/cm]; shape: (N_pressures, N_wavelengths)
