@@ -80,7 +80,7 @@ def species_name_to_fastchem_name(species, charge=None, return_mass=False):
     Returns
     -------
     hill_name : str
-        Name in Hill notation, like "H2O1", "Ti" or "Ti1+". "Ti1-"
+        Name in Hill notation, like "H2O1", "Ti", "Ti1+", or "Ti1-".
     """
     atoms = np.array(list(filter(
         lambda x: len(x) > 0, re.split(r"(?<=[a-z])|(?=[A-Z])|\d", species)
