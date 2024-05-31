@@ -27,18 +27,20 @@ pkg_data_directory = os.path.join(
 
 
 def opacity_to_fft_archive(opacity, path, n_terms=25):
-    wavelength = np.geomspace(0.4, 5, 300)
+    wavelength = np.geomspace(0.35, 10, 500)
+    wavelength_bin = np.geomspace(0.5, 5, 500)
 
-    log_wavelength = np.log10(wavelength)
     wavelength_min = wavelength.min()
     wavelength_max = wavelength.max()
-    log_lam_min = log_wavelength.min()
-    log_lam_max = log_wavelength.max()
+
+    log_wavelength_bin = np.log10(wavelength_bin)
+    log_lam_min_bin = log_wavelength_bin.min()
+    log_lam_max_bin = log_wavelength_bin.max()
     n_lambda = len(wavelength)
     grid_wavelength = opacity.grid.wavelength.to_numpy()
 
     # Create a simplified wavelength grid:
-    simplified_wavelength = np.linspace(log_lam_min, log_lam_max, n_lambda)
+    simplified_wavelength = np.linspace(log_lam_min_bin, log_lam_max_bin, n_lambda)
 
     skip_pt_samples = 6
     dimensions = opacity.grid.sizes
@@ -64,27 +66,39 @@ def opacity_to_fft_archive(opacity, path, n_terms=25):
             ).to_numpy()
 
             op_binned = bin_spectrum(
-                wavelength, grid_wavelength[wavelength_mask], op
+                wavelength_bin, grid_wavelength[wavelength_mask], op
             )
 
+            # exclude extremes, nans:
+            op_binned = np.nan_to_num(op_binned, nan=0)
+
+            # catch special cases for specific molecules:
+            if 'CO2' in path:
+                op_binned = np.clip(op_binned, 1e-12, 1e5)
+            else:
+                op_binned = np.clip(op_binned, 1e-30, 1e30)
+
             log_spectrum = np.log10(op_binned)
-            log_spectrum_min = log_spectrum.min()
-            log_spectrum_max = log_spectrum.max()
+            log_spectrum_min = np.nanmin(log_spectrum)
+            log_spectrum_max = np.nanmax(log_spectrum)
             renormed_spectrum = (
                 (log_spectrum - log_spectrum_min) /
                 (log_spectrum_max - log_spectrum_min)
             )
-            tr_interp = np.interp(
-                simplified_wavelength, log_wavelength, renormed_spectrum
-            )
 
+            spectrum_interp = np.interp(
+                simplified_wavelength,
+                log_wavelength_bin,
+                renormed_spectrum,
+                left=0, right=0
+            )
             # Take the DFT of the interpolated spectrum
-            fft = np.fft.rfft(tr_interp, norm="ortho")[:n_terms]
+            fft = np.fft.rfft(spectrum_interp, norm="ortho")[:n_terms]
             result = np.concatenate([
                 [
                     float(opacity.grid.temperature[temperature_idx]),
                     float(opacity.grid.pressure[pressure_idx]),
-                    log_lam_min, log_lam_max, n_lambda,
+                    log_lam_min_bin, log_lam_max_bin, n_lambda,
                     log_spectrum_min, log_spectrum_max
                 ], fft
             ])
@@ -113,10 +127,13 @@ def reconstruct_fft_archive(result):
     )
 
     log_opacity = (
-        irfft * (log_spectrum_max - log_spectrum_min)
-    ) + log_spectrum_min
-    reconstructed_opacity = 10 ** log_opacity.real
+        np.nan_to_num(
+            irfft * (log_spectrum_max - log_spectrum_min) + log_spectrum_min,
+            nan=-30
+        )
+    ).real
 
+    reconstructed_opacity = np.power(10.0, log_opacity)
     return (
         float(temperature.real), float(pressure.real),
         reconstructed_wavelength, reconstructed_opacity

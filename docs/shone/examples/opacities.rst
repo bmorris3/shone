@@ -265,3 +265,25 @@ and we can see the reduction in size:
 
     print(opacity.grid.size)
     2220
+
+
+Tiny opacity archives
+---------------------
+
+It can be cumbersome to work with opacity grids, given that they
+may be tens of GB in size. For simple examples in the documentation
+and tests, ``shone`` has very lightweight representations of the full
+opacity grids for several molecules, which we call "tiny opacity
+archives".
+
+To load one of these example opacities, run:
+
+.. code-block:: python
+
+    from shone.opacity import Opacity
+
+    tiny_opacity = Opacity.load_demo_species("H2O")
+
+    tiny_opacity
+
+
