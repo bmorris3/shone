@@ -16,9 +16,18 @@ Let's construct a atmospheric structure (temperature-pressure curve):
 .. code-block:: python
 
     import numpy as np
+    import matplotlib.pyplot as plt
 
     pressure = np.geomspace(1e-6, 10, 15)  # [bar]
     temperature = 2300 * (pressure / 0.1) ** 0.1  # [K]
+
+    ax = plt.gca()
+    ax.semilogy(temperature, pressure)
+    ax.invert_yaxis()
+    ax.set(
+        xlabel='Temperature [K]',
+        ylabel='Pressure [bar]'
+    )
 
 .. plot::
 
@@ -36,9 +45,7 @@ Let's construct a atmospheric structure (temperature-pressure curve):
         ylabel='Pressure [bar]'
     )
 
-Radiative transfer calculations require the mixing ratio of each atmospheric species, which are
-functions of temperature, pressure, atmospheric metallicity, and C/O ratio. We specify these
-parameters like so:
+Radiative transfer calculations require the volume mixing ratio (VMR) of each atmospheric species. The VMR is a function of temperature, pressure, atmospheric metallicity, and the carbon-to-oxygen ratio. We specify these parameters as follows:
 
 .. code-block:: python
 
@@ -57,7 +64,7 @@ species with `~shone.chemistry.FastchemWrapper.get_species`:
 .. code-block:: python
 
     species_table = chem.get_species()
-    print(species_table[:3])  # first three species
+    print(species_table[:5])  # first five species
 
 Returns a table like this:
 
@@ -93,20 +100,35 @@ Returns a table like this:
           <th>Al</th>
           <td>1</td>
           <td>Aluminium</td>
-          <td>26.981538</td>
+          <td>26.98</td>
           <td>element</td>
         </tr>
         <tr>
           <th>Ar</th>
           <td>2</td>
           <td>Argon</td>
-          <td>39.948000</td>
+          <td>39.948</td>
+          <td>element</td>
+        </tr>
+        <tr>
+          <th>C</th>
+          <td>3</td>
+          <td>Carbon</td>
+          <td>12.011</td>
+          <td>element</td>
+        </tr>
+        <tr>
+          <th>Ca</th>
+          <td>4</td>
+          <td>Calcium</td>
+          <td>40.078</td>
           <td>element</td>
         </tr>
       </tbody>
     </table>
     <br />
     <br />
+
 
 Volume mixing ratio
 +++++++++++++++++++
@@ -222,7 +244,6 @@ Now let's print a table of volume mixing ratios for the first five species:
 .. code-block:: python
 
     from shone.chemistry import get_fastchem_interpolator, fastchem_species_table
-    from astropy.table import Table
 
     # load the jitted chemistry interpolator:
     interp_chem = get_fastchem_interpolator()
