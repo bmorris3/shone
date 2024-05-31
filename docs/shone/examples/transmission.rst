@@ -10,6 +10,320 @@ Transmission spectra
    :backlinks: none
 
 
+.. _transmission_de_wit:
+
+General transmission spectra
+============================
+
+In this section we'll use the general transmission spectrum model from
+`de Wit & Seager (2013) <https://ui.adsabs.harvard.edu/abs/2013Sci...342.1473D/abstract>`_.
+We will compute the transmission spectrum for an Earth-sized planet, for
+an atmosphere in chemical equilibrium, using only the opacities for
+water and carbon dioxide.
+
+First we will import the necessary packages, and choose the wavelengths,
+temperatures, and pressures:
+
+.. code-block:: python
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import astropy.units as u
+    from astropy.constants import G
+
+    from jax import numpy as jnp
+
+    from shone.chemistry import FastchemWrapper, species_name_to_fastchem_name
+    from shone.opacity import Opacity
+    from shone.transmission import de_wit_seager_2013
+
+    wavelength = np.geomspace(0.5, 5, 500)
+    pressure = np.geomspace(1e-6, 1)  # [bar]
+    temperature = 700 * (pressure / 0.1) ** 0.05  # [K]
+
+Load opacities
+--------------
+
+Let's load those opacities from the demo
+opacities with `~shone.opacity.Opacity.load_demo_species`:
+
+.. code-block:: python
+
+    opacity_samples = []
+    molecules = ['H2O', 'CO2']
+    for molecule in molecules:
+
+        # in this example we'll use the demo opacities,
+        # which you *should not use* in real work:
+        opacity = Opacity.load_demo_species(molecule)
+        interp_opacity = opacity.get_interpolator()
+        opacity_samples.append(
+            interp_opacity(wavelength, temperature, pressure)
+        )
+
+    total_opacity = jnp.array(opacity_samples).sum(axis=0)
+
+Let's see where each species contributes to the opacity:
+
+.. code-block:: python
+
+    ax = plt.gca()
+
+    for molecule, op in zip(molecules, opacity_samples):
+        ax.semilogy(
+            wavelength, op[30],
+            label=molecule.replace('2', '$_2$')
+        )
+
+    plt.legend()
+    ax.set(
+        xlabel='Wavelength [µm]',
+        ylabel='Opacity [cm$^2$ g$^{-1}$]',
+        ylim=(1e-6, 1e5)
+    )
+
+.. plot::
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    from shone.opacity import Opacity
+
+    wavelength = np.geomspace(0.5, 5, 500)
+    pressure = np.geomspace(1e-6, 1)  # [bar]
+    temperature = 700 * (pressure / 0.1) ** 0.05  # [K]
+
+    opacity_samples = []
+    molecules = ['H2O', 'CO2']
+    for molecule in molecules:
+        opacity = Opacity.load_demo_species(molecule)
+        interp_opacity = opacity.get_interpolator()
+        opacity_samples.append(
+            interp_opacity(wavelength, temperature, pressure)
+        )
+
+    ax = plt.gca()
+    for molecule, op in zip(molecules, opacity_samples):
+        ax.semilogy(wavelength, op[30], label=molecule.replace('2', '$_2$'))
+    plt.legend()
+    ax.set(
+        xlabel='Wavelength [µm]',
+        ylabel='Opacity [cm$^2$ g$^{-1}$]',
+        ylim=(1e-6, 1e5)
+    )
+
+These demo opacities are meant for documentation and testing only, and are
+not reliable near either wavelength limit in this plot, or at very low
+opacities. For more background on these tiny opacity archives, see
+:ref:`tiny_opacity_archive`.
+
+.. warning::
+
+    Reminder: the example opacities that we used above
+    are not accurate or precise at all wavelengths. These
+    opacities are used in docs and tests, but don't
+    use these for science!
+
+Equilibrium chemistry
+---------------------
+
+We compute the volume mixing ratios in chemical equilibrium from FastChem
+via `~shone.chemistry.fastchem.FastchemWrapper`:
+
+.. code-block:: python
+
+    chem = FastchemWrapper(temperature, pressure)
+    vmr = chem.vmr()
+    weights_amu = chem.get_weights()
+
+    vmr_indices = chem.get_column_index(species_name=molecules)
+
+Let's see what the mixing ratios are as a function of pressure:
+
+.. code-block::
+
+    fig, ax = plt.subplots(1, 2, figsize=(8, 4), sharey=True)
+
+    ax[0].semilogy(temperature, pressure, color='k')
+    ax[0].set(
+        xlabel='Temperature [K]',
+        ylabel='Pressure [bar]',
+        title='p-T structure'
+    )
+    ax[0].invert_yaxis()
+
+    for molecule, vmr_i in zip(molecules, vmr[:, vmr_indices].T):
+        ax[1].loglog(vmr_i, pressure, label=molecule.replace('2', '$_2$'))
+    ax[1].legend()
+    ax[1].set(
+        xlabel='VMR',
+        title='Chemistry'
+    )
+    plt.tight_layout()
+
+.. plot::
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    from jax import numpy as jnp
+
+    from shone.chemistry import FastchemWrapper
+    from shone.opacity import Opacity
+
+    wavelength = np.geomspace(0.5, 5, 500)
+    pressure = np.geomspace(1e-6, 1)  # [bar]
+    temperature = 700 * (pressure / 0.1) ** 0.05  # [K]
+
+    opacity_samples = []
+    molecules = ['H2O', 'CO2']
+    for molecule in molecules:
+        opacity = Opacity.load_demo_species(molecule)
+        interp_opacity = opacity.get_interpolator()
+        opacity_samples.append(
+            interp_opacity(wavelength, temperature, pressure)
+        )
+
+    total_opacity = jnp.array(opacity_samples).sum(axis=0)
+
+    chem = FastchemWrapper(temperature, pressure)
+
+    vmr = chem.vmr()
+    vmr_indices = chem.get_column_index(species_name=molecules)
+    weights_amu = chem.get_weights()
+
+    fig, ax = plt.subplots(1, 2, figsize=(8, 4), sharey=True)
+
+    ax[0].semilogy(temperature, pressure, color='k')
+    ax[0].set(
+        xlabel='Temperature [K]',
+        ylabel='Pressure [bar]',
+        title='p-T structure'
+    )
+    ax[0].invert_yaxis()
+
+    for molecule, vmr_i in zip(molecules, vmr[:, vmr_indices].T):
+        ax[1].loglog(vmr_i, pressure, label=molecule.replace('2', '$_2$'))
+    ax[1].legend()
+    ax[1].set(
+        xlabel='VMR',
+        title='Chemistry'
+    )
+    plt.tight_layout()
+
+
+Compute transmission
+--------------------
+
+In order to know the planetary surface gravity, and to compute the ratio
+of the planetary to stellar radii, we need to specify some system
+parameters:
+
+.. code-block:: python
+
+    R_p0 = (1 * u.R_earth).cgs.value  # [cm]
+    mass = (1 * u.M_earth).cgs.value  # [g]
+    g = (G * mass / R_p0**2).cgs.value  # [cm/s2]
+    R_star = (1 * u.R_sun).cgs.value  # [cm]
+
+Now we bring all of the pieces together in
+`~shone.transmission.transmission_radius`
+and plot the result:
+
+.. code-block:: python
+
+    # compute the transmission spectrum:
+    Rp_Rs = de_wit_seager_2013.transmission_radius(
+        wavelength, temperature, pressure,
+        g, R_p0,
+        total_opacity[None, ...],
+        vmr, vmr_indices, weights_amu,
+        rayleigh_scattering=True
+    ) / R_star
+
+    # plot transmission spectrum:
+    ax = plt.gca()
+    ax.plot(wavelength, Rp_Rs)
+
+    # add labels for CO2 and H2O features:
+    label_height = 0.0135
+    ax.annotate("CO$_2$", (4.32, label_height), ha='center')
+
+    water_peaks = [1.4, 1.9, 2.7]
+    for peak in water_peaks:
+        ax.annotate("H$_2$O", (peak, label_height), ha='center')
+
+    ax.set(
+        xlabel='Wavelength [µm]',
+        ylabel='$R_{\\rm p}~/~R_{\\rm s}$',
+        ylim=(0.009, 0.014)
+    )
+
+.. plot::
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import astropy.units as u
+    from astropy.constants import G
+
+    from jax import numpy as jnp
+
+    from shone.chemistry import FastchemWrapper
+    from shone.opacity import Opacity
+    from shone.transmission import de_wit_seager_2013
+
+    wavelength = np.geomspace(0.5, 5, 500)
+    pressure = np.geomspace(1e-6, 1)  # [bar]
+    temperature = 700 * (pressure / 0.1) ** 0.05  # [K]
+
+    opacity_samples = []
+    molecules = ['H2O', 'CO2']
+    for molecule in molecules:
+        opacity = Opacity.load_demo_species(molecule)
+        interp_opacity = opacity.get_interpolator()
+        opacity_samples.append(
+            interp_opacity(wavelength, temperature, pressure)
+        )
+
+    total_opacity = jnp.array(opacity_samples).sum(axis=0)
+
+    chem = FastchemWrapper(temperature, pressure)
+
+    vmr = chem.vmr()
+    vmr_indices = chem.get_column_index(species_name=molecules)
+    weights_amu = chem.get_weights()
+
+    R_p0 = (1 * u.R_earth).cgs.value
+    mass = (1 * u.M_earth).cgs.value
+    g = (G * mass / R_p0**2).cgs.value
+    R_star = (1 * u.R_sun).cgs.value
+
+    Rp_Rs = de_wit_seager_2013.transmission_radius(
+        wavelength, temperature, pressure, g, R_p0,
+        total_opacity[None, ...],
+        vmr, vmr_indices, weights_amu,
+        rayleigh_scattering=True
+    ) / R_star
+
+    ax = plt.gca()
+    ax.plot(wavelength, Rp_Rs)
+
+    label_height = 0.0135
+    ax.annotate("CO$_2$", (4.32, label_height), ha='center')
+
+    water_peaks = [1.4, 1.9, 2.7]
+    for peak in water_peaks:
+        ax.annotate("H$_2$O", (peak, label_height), ha='center')
+    ax.set(
+        xlabel='Wavelength [µm]',
+        ylabel='$R_{\\rm p}~/~R_{\\rm s}$',
+        ylim=(0.009, 0.014)
+    )
+
+We've labeled prominent absorption features from water and carbon dioxide,
+and you can see the upturn at short wavelengths due to Rayleigh scattering.
+
+
 .. _transmission_heng_kitzmann:
 
 Isothermal/isobaric transmission spectra
@@ -19,7 +333,7 @@ Let's compute the transmission spectrum for an Earth-like planet with
 a single-species atmosphere using the isothermal and isobaric
 approximations from `Heng & Kitzmann (2017)
 <https://ui.adsabs.harvard.edu/abs/2017MNRAS.470.2972H/abstract>`_.
-The full transmission model is demonstrated below in :ref:`transmission_de_wit`.
+The full transmission model is demonstrated above in :ref:`transmission_de_wit`.
 
 We'll load an opacity grid and interpolate for the opacity at several temperatures,
 add a gray cloud opacity, and compute a transmission spectrum.
@@ -41,10 +355,10 @@ one atmospheric species in the near-infrared.
     import numpy as np
     from jax import numpy as jnp, jit
     import matplotlib.pyplot as plt
-    
+
     import astropy.units as u
     from astropy.constants import m_p
-    
+
     from shone.opacity import Opacity, generate_synthetic_opacity
     from shone.transmission import heng_kitzmann_2017
 
@@ -105,7 +419,7 @@ Let's compute the opacity at one temperature and pressure:
     temperature = 200  # [K]
 
     example_opacity = interp_opacity(wavelength, temperature, pressure)
-    
+
     plt.semilogy(wavelength, example_opacity, label=f"T={temperature} K")
     plt.legend()
     plt.gca().set(
@@ -162,7 +476,7 @@ and now let's plot the result:
 .. code-block:: python
 
     label = [f"{t} K" for t in temperature]
-    
+
     plt.figure()
     plt.semilogy(wavelength, example_opacity.T, label=label)
     plt.semilogy(wavelength, kappa_cloud * np.ones_like(wavelength), ls='--', label="Cloud")
@@ -210,7 +524,7 @@ Compute transmission
 
 We can compute a transmission spectrum for an Earth-sized planet
 transiting a Sun-like star using
-`~shone.transmission.heng_kitzmann_2017.transmission_radius_isothermal`:
+`~shone.transmission.transmission_radius_isothermal`:
 
 .. code-block:: python
 
@@ -219,17 +533,17 @@ transiting a Sun-like star using
     T_0 = 290 * u.K  # reference temperature
     mmw = 28 * m_p  # mean molecular weight (AMU)
     g = 9.8 * u.m / u.s**2  # surface gravity
-    
-    # convert the arguments from astropy `Quantity`s to 
+
+    # convert the arguments from astropy `Quantity`s to
     # floats in cgs units:
     args = (R_0, P_0, T_0, mmw, g)
     cgs_args = (arg.cgs.value for arg in args)
-    
+
     # compute the planetary radius as a function of wavelength:
     Rp = heng_kitzmann_2017.transmission_radius_isothermal(
         example_opacity + kappa_cloud, *cgs_args
     )
-    
+
     # convert to transit depth:
     Rstar = (1 * u.R_sun).cgs.value
     transit_depth_ppm = 1e6 * (Rp / Rstar) ** 2
@@ -302,238 +616,3 @@ Now let's plot the result:
         xlabel='Wavelength [µm]',
         ylabel='Transit depth [ppm]'
     )
-
-.. _transmission_de_wit:
-
-General transmission spectra
-============================
-
-Above we demonstrated :ref:`transmission_heng_kitzmann` with a semi-analytic approach.
-In this section we'll use the general transmission spectrum model from
-`de Wit & Seager (2013) <https://ui.adsabs.harvard.edu/abs/2013Sci...342.1473D/abstract>`_.
-We will compute the transmission spectrum for an Earth-sized planet, for
-an atmosphere in chemical equilibrium, using only the opacities for
-water and carbon dioxide.
-
-First we will import the necessary packages, and choose the wavelengths,
-temperatures, and pressures:
-
-.. code-block:: python
-
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import astropy.units as u
-    from astropy.constants import G
-
-    from jax import numpy as jnp
-
-    from shone.chemistry import FastchemWrapper, species_name_to_fastchem_name
-    from shone.opacity import Opacity
-    from shone.transmission import de_wit_seager_2013
-
-    wavelength = np.geomspace(0.5, 5, 500)  # [µm]
-    pressure = np.geomspace(1e-6, 1e3)  # [bar]
-    temperature = 600 * np.ones_like(pressure)  # [K]
-
-Load opacities
---------------
-
-Let's load those opacities from the demo
-opacities with `~shone.opacity.Opacity.load_demo_species`:
-
-.. code-block:: python
-
-    opacity_samples = []
-    molecules = ['H2O', 'CO2']
-    for molecule in molecules:
-
-        # in this example we'll use the demo opacities,
-        # which you *should not use* in real work:
-        opacity = Opacity.load_demo_species(molecule)
-        interp_opacity = opacity.get_interpolator()
-        opacity_samples.append(
-            interp_opacity(wavelength, temperature, pressure)
-        )
-
-    total_opacity = jnp.array(opacity_samples).sum(axis=0)
-
-Let's see where each species contributes to the opacity:
-
-.. code-block:: python
-
-    ax = plt.gca()
-
-    for molecule, op in zip(molecules, opacity_samples):
-        ax.semilogy(
-            wavelength, op[30],
-            label=molecule.replace('2', '$_2$')
-        )
-
-    plt.legend()
-    ax.set(
-        xlabel='Wavelength [µm]',
-        ylabel='Opacity [cm$^2$ g$^{-1}$]',
-    )
-
-.. plot::
-
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    from shone.opacity import Opacity
-
-    wavelength = np.geomspace(0.5, 5, 500)
-    pressure = np.geomspace(1e-6, 1e3)  # [bar]
-    temperature = 600 * np.ones_like(pressure)  # [K]
-
-    opacity_samples = []
-    molecules = ['H2O', 'CO2']
-    for molecule in molecules:
-        opacity = Opacity.load_demo_species(molecule)
-        interp_opacity = opacity.get_interpolator()
-        opacity_samples.append(
-            interp_opacity(wavelength, temperature, pressure)
-        )
-
-    ax = plt.gca()
-    for molecule, op in zip(molecules, opacity_samples):
-        ax.semilogy(wavelength, op[30], label=molecule.replace('2', '$_2$'))
-    plt.legend()
-    ax.set(
-        xlabel='Wavelength [µm]',
-        ylabel='Opacity [cm$^2$ g$^{-1}$]',
-    )
-
-These demo opacities are meant for documentation and testing only, and are
-not reliable near either wavelength limit in this plot, or at very low
-opacities. For more background on these tiny opacity archives, see
-:ref:`tiny_opacity_archive`.
-
-.. warning::
-
-    Reminder: the example opacities that we used above
-    are not accurate or precise at all wavelengths. These
-    opacities are used in docs and tests, but don't
-    use these for science!
-
-Equilibrium chemistry
----------------------
-
-We compute the volume mixing ratios in chemical equilibrium with:
-
-.. code-block:: python
-
-    chem = FastchemWrapper(temperature, pressure)
-    vmr = chem.vmr()
-    weights_amu = chem.get_weights()
-
-    vmr_indices = chem.get_column_index(species_name=molecules)
-
-Compute transmission
---------------------
-
-In order to know the planetary surface gravity, and to compute the ratio
-of the planetary to stellar radii, we need to specify some system
-parameters:
-
-.. code-block:: python
-
-    R_p0 = (1 * u.R_earth).cgs.value  # [cm]
-    mass = (1 * u.M_earth).cgs.value  # [g]
-    g = (G * mass / R_p0**2).cgs.value  # [cm/s2]
-    R_star = (1 * u.R_sun).cgs.value  # [cm]
-
-Now we bring all of the pieces together and plot the result:
-
-.. code-block:: python
-
-    # compute the transmission spectrum:
-    Rp_Rs = de_wit_seager_2013.transmission_radius(
-        wavelength, temperature, pressure,
-        g, R_p0,
-        total_opacity[None, ...],
-        vmr, vmr_indices, weights_amu,
-        rayleigh_scattering=True
-    ) / R_star
-
-    # plot the result:
-    ax = plt.gca()
-    ax.plot(wavelength, Rp_Rs)
-
-    # add a label to the CO2 feature:
-    label_height = 0.0157
-    ax.annotate("CO$_2$", (4.32, label_height), ha='center')
-
-    # add labels to H2O features:
-    water_peaks = [1.4, 1.9, 2.7]
-    for peak in water_peaks:
-        ax.annotate("H$_2$O", (peak, label_height), ha='center')
-
-    ax.set(
-        xlabel='Wavelength [µm]',
-        ylabel='$R_{\\rm p}~/~R_{\\rm s}$',
-        ylim=(0.01, 0.016)
-    )
-
-.. plot::
-
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import astropy.units as u
-    from astropy.constants import G
-
-    from jax import numpy as jnp
-
-    from shone.chemistry import FastchemWrapper
-    from shone.opacity import Opacity
-    from shone.transmission import de_wit_seager_2013
-
-    wavelength = np.geomspace(0.5, 5, 500)
-    pressure = np.geomspace(1e-6, 1e3)  # [bar]
-    temperature = 600 * np.ones_like(pressure)  # [K]
-
-    opacity_samples = []
-    molecules = ['H2O', 'CO2']
-    for molecule in molecules:
-        opacity = Opacity.load_demo_species(molecule)
-        interp_opacity = opacity.get_interpolator()
-        opacity_samples.append(
-            interp_opacity(wavelength, temperature, pressure)
-        )
-
-    total_opacity = jnp.array(opacity_samples).sum(axis=0)
-
-    chem = FastchemWrapper(temperature, pressure)
-
-    vmr = chem.vmr()
-    vmr_indices = chem.get_column_index(species_name=molecules)
-    weights_amu = chem.get_weights()
-
-    R_p0 = (1 * u.R_earth).cgs.value
-    mass = (1 * u.M_earth).cgs.value
-    g = (G * mass / R_p0**2).cgs.value
-    R_star = (1 * u.R_sun).cgs.value
-
-    Rp_Rs = de_wit_seager_2013.transmission_radius(
-        wavelength, temperature, pressure, g, R_p0,
-        total_opacity[None, ...],
-        vmr, vmr_indices, weights_amu,
-        rayleigh_scattering=True
-    ) / R_star
-
-    ax = plt.gca()
-    ax.plot(wavelength, Rp_Rs)
-
-    label_height = 0.0157
-    ax.annotate("CO$_2$", (4.32, label_height), ha='center')
-
-    water_peaks = [1.4, 1.9, 2.7]
-    for peak in water_peaks:
-        ax.annotate("H$_2$O", (peak, label_height), ha='center')
-    ax.set(
-        xlabel='Wavelength [µm]',
-        ylabel='$R_{\\rm p}~/~R_{\\rm s}$',
-        ylim=(0.011, 0.016)
-    )
-
-Note the upturn at short wavelengths due to Rayleigh scattering.
