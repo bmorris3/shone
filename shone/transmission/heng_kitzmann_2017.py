@@ -1,15 +1,7 @@
 from jax import numpy as jnp, jit
-import astropy.units as u
-from astropy.constants import m_p, k_B
+from shone.constants import bar_to_dyn_cm2, k_B_over_m_p
 
 __all__ = ['transmission_radius_isothermal']
-
-
-# constants in cgs:
-m_p = m_p.cgs.value
-k_B = k_B.cgs.value
-bar_to_dyn_cm2 = (1 * u.bar).cgs.value
-k_B_over_m_p = 82543997.56725217  # [cgs]
 
 
 @jit
