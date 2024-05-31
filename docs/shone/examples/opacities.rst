@@ -221,19 +221,16 @@ the grid:
         ylabel='Opacity, $\kappa$ [cm$^2$ g$^{-1}$]'
     )
 
-If you need to interpolate opacities onto several temperatures and pressures, you can
-vectorize ``interp_opacity`` with `~jax.vmap`:
+We can compute opacities over a series of temperatures and pressures:
 
 .. code-block:: python
 
-    from jax import numpy as jnp, vmap
+    from jax import numpy as jnp
 
     temperatures = jnp.array([222, 333, 444])
     pressures = jnp.array([0.1, 0.5, 0.9])
 
-    example_opacity = vmap(
-        lambda t, p: interp_opacity(wavelength, t, p)
-    )(temperatures, pressures)
+    example_opacity = interp_opacity(wavelength, temperatures, pressures)
 
 For M wavelengths and N samples in pressure and temperature, the
 output will have the shape (N, M).

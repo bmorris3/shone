@@ -62,7 +62,7 @@ def isotopologue_to_mass(isotopologue):
     return (mass if mass != 0 else getattr(elements, isotopologue).mass) * u.u
 
 
-def species_name_to_fastchem_name(species, return_mass=False):
+def species_name_to_fastchem_name(species, charge=None, return_mass=False):
     """
     Convert generic species name, like "H2O" or "ClAlF2", to
     Hill notation for FastChem, like "H2O1" or "Al1Cl1F2".
@@ -72,12 +72,15 @@ def species_name_to_fastchem_name(species, return_mass=False):
     Parameters
     ----------
     species : str
-        Generic name, like "H2O".
+        Generic name, like "H2O" or "Ti".
+
+    charge: None or int
+        If ``species`` is an atom, specify the charge.
 
     Returns
     -------
     hill_name : str
-        Name in Hill notation, like "H2O1".
+        Name in Hill notation, like "H2O1", "Ti", "Ti1+", or "Ti1-".
     """
     atoms = np.array(list(filter(
         lambda x: len(x) > 0, re.split(r"(?<=[a-z])|(?=[A-Z])|\d", species)
@@ -97,9 +100,23 @@ def species_name_to_fastchem_name(species, return_mass=False):
 
     # If single atom, give only the name of the atom:
     if len(correct_notation) == 2 and correct_notation.endswith('1'):
+        # this means it is an atom with only 1 letter, like K, or P.
         correct_notation = correct_notation[0]
+        # check charge and add it to the name if it is charged:
+        if charge is not None:
+            if charge > 0:
+                correct_notation += f'{charge}+'
+            elif charge < 0:
+                correct_notation += f'{abs(charge)}-'
     elif len(correct_notation) == 3 and correct_notation.endswith('1'):
+        # this means it is an atom with 2 letters, like Na, or Ti.
+        # check charge and add it to the name if it is charged:
         correct_notation = correct_notation[:2]
+        if charge is not None:
+            if charge > 0:
+                correct_notation += f'{charge}+'
+            elif charge < 0:
+                correct_notation += f'{abs(charge)}-'
 
     if return_mass:
         # Optionally return mass of species
