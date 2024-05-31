@@ -222,7 +222,7 @@ def opacity_dir_to_netcdf(opacity_dir, outpath, **kwargs):
     pressure_grid = []
     unique_wavelengths = None
 
-    wl_start,wl_end = (0,np.inf)
+    wl_start, wl_end = (0, np.inf)
     for dirpath, dirnames, filenames in os.walk(opacity_dir):
         for filename in filenames:
             if not filename.endswith('.bin'):
@@ -233,21 +233,18 @@ def opacity_dir_to_netcdf(opacity_dir, outpath, **kwargs):
             sign = 1 if filename.split('_')[4][0] == 'p' else -1
             pressure = 10 ** (sign * float(filename.split('_')[4][1:].split('.')[0]) / 100)
 
-            wl_start = max([int(filename.split('_')[1]),wl_start])
-            wl_end = min([int(filename.split('_')[2]),wl_end])
+            wl_start = max(int(filename.split('_')[1]), wl_start)
+            wl_end = min(int(filename.split('_')[2]), wl_end)
 
             temperature_grid.append(temperature)
             pressure_grid.append(pressure)
 
-    if wl_start > 0:
-        raise ValueError(f"The starting wavenumber {wl_start} is non-zero. "
-                         f"This is not anticipated for normal opacity functions "
-                         f"from DACE, and is not caught.")  
-    if wl_end == np.inf or wl_start == wl_end:
-        raise ValueError(f"Wavenumbers were not read correctly from file-names "
-                         f"or no binary files were found. This may occur when you "
-                         f"query for a temperature or pressure range that has no "
-                         f"samples in the grid.") 
+    if wl_end in (np.inf, wl_start):
+        raise ValueError("Wavenumbers were not read correctly from binary filenames, "
+                         "or no binary files were found. This may occur when you "
+                         "query for a temperature or pressure range that isn't covered"
+                         "by samples in the grid on DACE.")
+
     wlen = np.arange(wl_start, wl_end, 0.01)
 
     # catch divide by zero warning here:
@@ -294,9 +291,8 @@ def opacity_dir_to_netcdf(opacity_dir, outpath, **kwargs):
             temperature_ind = np.argmin(np.abs(tgrid - temperature))
             pressure_ind = np.argmin(np.abs(pgrid - pressure))
 
-            #Place the opacity in the grid, dealing with the possibility that the wavelength
-            #range of one file may not be equal to another. The grid size is clipped to the 
-            #length of the shortest range in the folder of binaries.
+            # Clip the result to the length of the shortest wavelength
+            # range in the binary files.
             opacity_grid[temperature_ind, pressure_ind, :] = opacity[0:len(unique_wavelengths)]
 
     if extrapolate_pgrid:
