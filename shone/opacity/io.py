@@ -212,9 +212,9 @@ class Opacity:
 
         # if the npy archive exists but the netCDF hasn't been written yet:
         if not os.path.exists(nc_path) and os.path.exists(npy_path):
-            warnings.warn(f"This tiny opacity archive hasn't yet been reconstructed, "
-                          f"so it will be reconstructed now. This call will be "
-                          f"faster the next time you run it.")
+            warnings.warn("This tiny opacity archive hasn't yet been reconstructed, "
+                          "so it will be reconstructed now. This call will be "
+                          "faster the next time you run it.")
             unpack_tiny_opacity_archives([name])
 
         return cls(path=nc_path)
@@ -227,12 +227,13 @@ def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
 
     Parameters
     ----------
-    filename : str, path-like (optional)
-        File name.
+    filename : str (path-like) or None
+        File name. If None, don't write out to a file.
     """
-    output_path = os.path.join(shone_dir, filename)
-    if os.path.exists(output_path):
-        return Opacity(path=output_path)
+    if filename is not None:
+        output_path = os.path.join(shone_dir, filename)
+        if os.path.exists(output_path):
+            return Opacity(path=output_path)
 
     np.random.seed(42)
 
@@ -263,9 +264,10 @@ def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
         attrs=dict(description=description)
     )
 
-    if not filename.endswith('.nc'):
-        filename += '.nc'
+    if filename is not None:
+        if not filename.endswith('.nc'):
+            filename += '.nc'
 
-    example_opacity.to_netcdf(output_path)
+        example_opacity.to_netcdf(output_path)
 
     return Opacity(grid=example_opacity)

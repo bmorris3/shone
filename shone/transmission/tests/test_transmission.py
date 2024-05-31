@@ -10,7 +10,7 @@ from shone.transmission import heng_kitzmann_2017
 
 
 def test_hk_vs_dws():
-    opacity = generate_synthetic_opacity()
+    opacity = generate_synthetic_opacity(filename=None)
     interp_opacity = opacity.get_interpolator()
 
     wavelength = np.geomspace(0.5, 5, 500)
