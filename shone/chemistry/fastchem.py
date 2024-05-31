@@ -13,7 +13,7 @@ from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_
 
 from shone.config import shone_dir
 from shone.constants import bar_to_dyn_cm2, k_B
-
+from shone.chemistry.translate import species_name_to_fastchem_name
 
 __all__ = [
     'FastchemWrapper',
@@ -199,6 +199,46 @@ class FastchemWrapper:
         mmr_mmw = vmr * weights_amu[None, :]
 
         return mmr_mmw
+
+    def get_column_index(self, fastchem_name=None, species_name=None):
+        """
+        Return the column of the FastChem result corresponding
+        to a given species or list of species.
+
+        Parameters
+        ----------
+        fastchem_name : str, or list of strings (optional)
+            Species name in Hill notation (e.g. water is "H2O1"),
+            as it is stored in FastChem.
+        species_name : str, or list of strings (optional)
+            Common species name (e.g. water is "H2O"),
+            which will be converted to FastChem's
+            preferred (Hill) notation.
+
+        Returns
+        -------
+        idx : int, or list of ints
+            Column index.
+        """
+
+        if species_name is not None and fastchem_name is None:
+            if isinstance(species_name, str):
+                species_name = [species_name]
+
+            fastchem_name = [
+                species_name_to_fastchem_name(name)
+                for name in species_name
+            ]
+
+        indices = []
+        for name in fastchem_name:
+            indices.append(
+                min(
+                    self.fastchem.getElementIndex(name),
+                    self.fastchem.getGasSpeciesIndex(name),
+                )
+            )
+        return indices
 
 
 def round_in_log(x):

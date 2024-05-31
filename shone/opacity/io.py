@@ -64,7 +64,7 @@ class Opacity:
                 jnp.broadcast_to(interp_temperature, interp_wavelength.shape),
                 jnp.broadcast_to(interp_pressure, interp_wavelength.shape),
                 interp_wavelength,
-            ])
+            ]).astype(jnp.float32)
 
             return nd_interp(
                 interp_point,

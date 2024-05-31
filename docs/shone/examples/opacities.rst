@@ -267,6 +267,8 @@ and we can see the reduction in size:
     2220
 
 
+.. _tiny_opacity_archive:
+
 Tiny opacity archives
 ---------------------
 
@@ -282,8 +284,73 @@ To load one of these example opacities, run:
 
     from shone.opacity import Opacity
 
-    tiny_opacity = Opacity.load_demo_species("H2O")
+    # load the tiny opacity archive:
+    tiny_opacity = Opacity.load_demo_species('H2O')
 
-    tiny_opacity
+After you load them, these opacity files work just like
+the real ones. We can interpolate the grid at several
+temperatures and plot the results like this:
+
+.. code-block:: python
+
+    # get a jitted interpolator:
+    interp_opacity = tiny_opacity.get_interpolator()
+
+    # get opacity at several temperatures, all at 1 bar:
+    wavelength = np.geomspace(0.6, 5, 500)
+    temperature = np.geomspace(100, 3000, 5)
+    pressure = np.ones_like(temperature)  # [bar]
+
+    kappa = interp_opacity(wavelength, temperature, pressure)
+
+    # plot the opacities:
+    n = len(temperature)
+    ax = plt.gca()
+
+    for i in range(n):
+        color = plt.cm.plasma(i / n)
+        label = f"{temperature[i]:.0f} K"
+        ax.semilogy(wavelength, kappa[i], label=label, color=color)
+
+    ax.legend(title='Temperature', loc='lower right', framealpha=1)
+    ax.set(
+        xlabel='Wavelength [µm]',
+        ylabel='Opacity [cm$^2$ g$^{-1}$]',
+        title="Demo opacity: H$_2$O"
+    )
 
 
+.. plot::
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    from shone.opacity import Opacity
+
+    # load the tiny opacity archive:
+    tiny_opacity = Opacity.load_demo_species('H2O')
+
+    # get a jitted interpolator:
+    interp_opacity = tiny_opacity.get_interpolator()
+
+    # get opacity at several temperatures:
+    wavelength = np.geomspace(0.6, 5, 500)
+    temperature = np.geomspace(100, 3000, 5)
+    pressure = np.ones_like(temperature)  # [bar]
+
+    kappa = interp_opacity(wavelength, temperature, pressure)
+
+    n = len(temperature)
+    ax = plt.gca()
+
+    for i in range(n):
+        color = plt.cm.plasma(i / n)
+        label = f"{temperature[i]:.0f} K"
+        ax.semilogy(wavelength, kappa[i], label=label, color=color)
+
+    ax.legend(title='Temperature', loc='lower right', framealpha=1)
+    ax.set(
+        xlabel='Wavelength [µm]',
+        ylabel='Opacity [cm$^2$ g$^{-1}$]',
+        title="Demo opacity: H$_2$O"
+    )

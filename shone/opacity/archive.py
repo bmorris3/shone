@@ -176,7 +176,7 @@ def unpack_tiny_opacity_archives(species=['TiO', 'CO2', 'H2O']):
         ds = xr.Dataset(
             data_vars=dict(
                 opacity=(["temperature", "pressure", "wavelength"],
-                         reconstructed_opacity)
+                         reconstructed_opacity.astype(np.float32))
             ),
             coords=dict(
                 temperature=(["temperature"], temperature),
