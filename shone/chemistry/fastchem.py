@@ -1,15 +1,19 @@
-from functools import partial
 import os
+import platform
+import sys
+import warnings
+from functools import partial
+
 import numpy as np
+from jax import numpy as jnp, jit
+from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 from tqdm.auto import tqdm
 import xarray as xr
-from jax import numpy as jnp, jit
 
 from astropy.table import Table
 from pyfastchem import (
     FastChem, FastChemInput, FastChemOutput
 )
-from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 
 from shone.config import shone_dir
 from shone.constants import bar_to_dyn_cm2, k_B
@@ -28,6 +32,19 @@ __all__ = [
 
 fastchem_grid_filename = 'fastchem_grid.nc'
 cached_species_table = None
+
+
+def _check_mac_arm():
+    if sys.platform == 'darwin' and platform.processor() == 'arm':
+        msg = (
+            "It appears that you're using a Mac with one of "
+            "Apple's ARM-based processors. Some results from FastChem may "
+            "be inaccurate on this processor, especially at lower temperatures "
+            "and pressures. For more details, see: "
+            "https://github.com/NewStrangeWorlds/FastChem/issues/9"
+            ""
+        )
+        warnings.warn(msg, UserWarning)
 
 
 class FastchemWrapper:
@@ -60,7 +77,8 @@ class FastchemWrapper:
         metallicity=1,
         c_to_o_ratio=0.5888,
         elemental_abundances_path=None,
-        fit_coefficients_path=None
+        fit_coefficients_path=None,
+        quiet=False
     ):
         """
         Parameters
@@ -69,16 +87,26 @@ class FastchemWrapper:
             Temperature grid [K].
         pressure : array-like
             Pressure grid [bar].
-        mean_molecular_weight : float
-            Mean molecular weight of the atmosphere [AMU].
-        metallicity : float
+        metallicity : float, optional
             M/H expressed as a linear factor (not log).
-        c_to_o_ratio : float
+        c_to_o_ratio : float, optional
             Carbon to oxygen ratio expressed as a linear
             factor (not log). Default is the C/O ratio of
             the solar abundances from Asplund et al. (2020):
             `0.5888`.
+        elemental_abundances_path : str (path-like), optional
+            Path to elemental abundances for FastChem.
+        fit_coefficients_path : str (path-like), optional
+            Path to fit coefficients for FastChem.
+        quiet : bool, optional
+            Raise warnings for machine configurations that may
+            produce inaccurate results. Default is False.
         """
+
+        # Warn the user if FastChem may be inaccurate on this processor:
+        if not quiet:
+            _check_mac_arm()
+
         self.temperature = temperature
         self.pressure = pressure
         self.metallicity = metallicity
@@ -411,7 +439,9 @@ def _fastchem_species_table(fastchem=None):
         and type (element or molecule).
     """
     if fastchem is None:
-        fastchem = FastchemWrapper(np.array([2300]), np.array([1])).fastchem
+        fastchem = FastchemWrapper(
+            np.array([2300]), np.array([1]), quiet=True
+        ).fastchem
 
     element_symbols = []
     gas_species_symbols = []
