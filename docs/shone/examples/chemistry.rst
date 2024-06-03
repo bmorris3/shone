@@ -45,7 +45,9 @@ Let's construct a atmospheric structure (temperature-pressure curve):
         ylabel='Pressure [bar]'
     )
 
-Radiative transfer calculations require the volume mixing ratio (VMR) of each atmospheric species. The VMR is a function of temperature, pressure, atmospheric metallicity, and the carbon-to-oxygen ratio. We specify these parameters as follows:
+Radiative transfer calculations require the volume mixing ratio (VMR) of each atmospheric species. The VMR is a
+function of temperature, pressure, atmospheric metallicity, and the carbon-to-oxygen ratio. We specify these
+parameters as follows:
 
 .. code-block:: python
 
@@ -232,9 +234,10 @@ in less than a minute on a laptop:
 
     build_fastchem_grid()  # returns a chemistry grid and saves it to disk
 
-The grid is saved to your `~/.shone` directory and can be interpolated during sampling to
-use *approximate* FastChem mixing ratios. The default limits for each dimension are enumerated
-in the documentation for `~shone.chemistry.fastchem.build_fastchem_grid`.
+The grid is saved to your `~/.shone` directory and can be interpolated during
+sampling to use *approximate* FastChem mixing ratios. The default limits for
+each dimension are enumerated in the documentation for
+`~shone.chemistry.fastchem.build_fastchem_grid`.
 
 Interpolate from the grid
 +++++++++++++++++++++++++

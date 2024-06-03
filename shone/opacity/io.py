@@ -1,6 +1,7 @@
 import os
 from functools import partial
 from glob import glob
+import warnings
 
 import numpy as np
 import xarray as xr
@@ -9,7 +10,7 @@ from astropy.table import Table
 from jax import numpy as jnp, jit, vmap
 from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 
-from shone.config import shone_dir
+from shone.config import shone_dir, tiny_archives_dir
 from shone.chemistry import isotopologue_to_species
 
 __all__ = ['Opacity', 'generate_synthetic_opacity']
@@ -63,7 +64,7 @@ class Opacity:
                 jnp.broadcast_to(interp_temperature, interp_wavelength.shape),
                 jnp.broadcast_to(interp_pressure, interp_wavelength.shape),
                 interp_wavelength,
-            ])
+            ]).astype(jnp.float32)
 
             return nd_interp(
                 interp_point,
@@ -180,7 +181,7 @@ class Opacity:
         Parameters
         ----------
         name : str
-            Name of the opacity file to load. Since the "name" entry
+            Name of the opacity species to load. Since the "name" entry
             isn't guaranteed to be unique, an error is raised
             if more than one file is available by this name.
         """
@@ -192,6 +193,32 @@ class Opacity:
                              f"a species named {name}.")
         return cls(path=table_row['path'][0])
 
+    @classmethod
+    def load_demo_species(cls, name):
+        """
+        Load a demo opacity archive.
+
+        Parameters
+        ----------
+        name : str
+            Name of the opacity archive to load.
+        """
+        from shone.opacity.archive import (
+            pkg_data_directory, unpack_tiny_opacity_archives
+        )
+
+        nc_path = os.path.join(tiny_archives_dir, f"{name}_reconstructed.nc")
+        npy_path = os.path.join(pkg_data_directory, f'{name}_opacity.npy')
+
+        # if the npy archive exists but the netCDF hasn't been written yet:
+        if not os.path.exists(nc_path) and os.path.exists(npy_path):
+            warnings.warn("This tiny opacity archive hasn't yet been reconstructed, "
+                          "so it will be reconstructed now. This call will be "
+                          "faster the next time you run it.")
+            unpack_tiny_opacity_archives([name])
+
+        return cls(path=nc_path)
+
 
 def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
     """
@@ -200,12 +227,13 @@ def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
 
     Parameters
     ----------
-    filename : str, path-like (optional)
-        File name.
+    filename : str (path-like) or None
+        File name. If None, don't write out to a file.
     """
-    output_path = os.path.join(shone_dir, filename)
-    if os.path.exists(output_path):
-        return Opacity(path=output_path)
+    if filename is not None:
+        output_path = os.path.join(shone_dir, filename)
+        if os.path.exists(output_path):
+            return Opacity(path=output_path)
 
     np.random.seed(42)
 
@@ -236,9 +264,10 @@ def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
         attrs=dict(description=description)
     )
 
-    if not filename.endswith('.nc'):
-        filename += '.nc'
+    if filename is not None:
+        if not filename.endswith('.nc'):
+            filename += '.nc'
 
-    example_opacity.to_netcdf(output_path)
+        example_opacity.to_netcdf(output_path)
 
     return Opacity(grid=example_opacity)
