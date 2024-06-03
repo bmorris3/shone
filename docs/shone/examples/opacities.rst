@@ -9,8 +9,11 @@ Download opacities
 
 Several helper methods are included in ``shone`` for downloading and archiving
 local copies of opacities stored on `DACE <https://dace.unige.ch/>`_ via
-the package ``dace-query``. Users must register for an API key to use ``dace-query``,
-see `their documentation for instructions
+the package ``dace-query``. Users can access the DACE API without any special
+registration, though a warning will appear saying "File .dacerc not found.
+You are requesting data in public mode..."
+If you like, you may register for an API key to use ``dace-query``, see
+`their documentation for instructions
 <https://dace-query.readthedocs.io/en/latest/dace_introduction.html#authentication>`_.
 
 To download the opacities for an atom with :func:`~shone.opacity.download_atom`, specify
@@ -272,6 +275,11 @@ and we can see the reduction in size:
 Tiny opacity archives
 ---------------------
 
+.. warning::
+
+    These demo opacities are meant for documentation and testing only, and
+    you should not do scientific inference with them. Demos only!
+
 It can be cumbersome to work with opacity grids, given that they
 may be tens of GB in size. For simple examples in the documentation
 and tests, ``shone`` has very lightweight representations of the full
@@ -299,8 +307,8 @@ temperatures and plot the results like this:
     interp_opacity = tiny_opacity.get_interpolator()
 
     # get opacity at several temperatures, all at 1 bar:
-    wavelength = np.geomspace(0.6, 5, 500)
-    temperature = np.geomspace(100, 3000, 5)
+    wavelength = np.geomspace(0.6, 5, 500)  # [µm]
+    temperature = np.geomspace(100, 3000, 5)  # [K]
     pressure = np.ones_like(temperature)  # [bar]
 
     kappa = interp_opacity(wavelength, temperature, pressure)
@@ -336,8 +344,8 @@ temperatures and plot the results like this:
     interp_opacity = tiny_opacity.get_interpolator()
 
     # get opacity at several temperatures:
-    wavelength = np.geomspace(0.6, 5, 500)
-    temperature = np.geomspace(100, 3000, 5)
+    wavelength = np.geomspace(0.6, 5, 500)  # [µm]
+    temperature = np.geomspace(100, 3000, 5)  # [K]
     pressure = np.ones_like(temperature)  # [bar]
 
     kappa = interp_opacity(wavelength, temperature, pressure)

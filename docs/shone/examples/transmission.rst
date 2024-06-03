@@ -167,7 +167,7 @@ Let's see what the mixing ratios are as a function of pressure:
     from shone.chemistry import FastchemWrapper
     from shone.opacity import Opacity
 
-    wavelength = np.geomspace(0.5, 5, 500)
+    wavelength = np.geomspace(0.5, 5, 500)  # [µm]
     pressure = np.geomspace(1e-6, 1)  # [bar]
     temperature = 700 * (pressure / 0.1) ** 0.05  # [K]
 
@@ -268,7 +268,7 @@ and plot the result:
     from shone.opacity import Opacity
     from shone.transmission import de_wit_seager_2013
 
-    wavelength = np.geomspace(0.5, 5, 500)
+    wavelength = np.geomspace(0.5, 5, 500)  # [µm]
     pressure = np.geomspace(1e-6, 1)  # [bar]
     temperature = 700 * (pressure / 0.1) ** 0.05  # [K]
 
