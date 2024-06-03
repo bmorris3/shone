@@ -267,7 +267,7 @@ def build_fastchem_grid(
     log_m_to_h : array-like
         Metallicity grid. Default is log-spaced from -1 to 3.
     log_c_to_o : array-like
-        C/O grid. Default is log-spaced from -1 to 2.
+        C/O grid. Default is log-spaced from -1 to 0.3.
     n_species : int
         Number of species in this FastChem computation.
 
@@ -284,7 +284,7 @@ def build_fastchem_grid(
     if log_m_to_h is None:
         log_m_to_h = np.linspace(-1, 3, 11)
     if log_c_to_o is None:
-        log_c_to_o = np.linspace(-1, 2, 16)
+        log_c_to_o = np.linspace(-1, 0.3, 16)
 
     shape = (
         pressure.size, temperature.size,
