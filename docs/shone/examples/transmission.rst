@@ -112,17 +112,13 @@ Let's see where each species contributes to the opacity:
         ylim=(1e-6, 1e5)
     )
 
-These demo opacities are meant for documentation and testing only, and are
-not reliable near either wavelength limit in this plot, or at very low
-opacities. For more background on these tiny opacity archives, see
-:ref:`tiny_opacity_archive`.
-
 .. warning::
 
-    Reminder: the example opacities that we used above
-    are not accurate or precise at all wavelengths. These
-    opacities are used in docs and tests, but don't
-    use these for science!
+    These demo opacities are meant for documentation and testing only, and are
+    not reliable near either wavelength limit in this plot, or at very low
+    opacities. For more background on these tiny opacity archives, see
+    :ref:`tiny_opacity_archive`.
+
 
 Equilibrium chemistry
 ---------------------
