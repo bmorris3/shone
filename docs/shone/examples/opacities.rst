@@ -283,7 +283,9 @@ To load one of these example opacities, run:
 .. code-block:: python
 
     from shone.opacity import Opacity
-
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
     # load the tiny opacity archive:
     tiny_opacity = Opacity.load_demo_species('H2O')
 
