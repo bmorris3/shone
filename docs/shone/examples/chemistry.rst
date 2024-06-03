@@ -60,6 +60,13 @@ parameters as follows:
         c_to_o_ratio=1  # C/O
     )
 
+.. warning::
+
+    There are `known issues <https://github.com/NewStrangeWorlds/FastChem/issues/9>`_
+    for FastChem users on Macs with "Apple silicon" ARM processors. You may see a warning
+    when running the code above if you use these processors. The spurious FastChem
+    results are most likely to occur for calculations at low temperatures and pressures.
+
 The wrapper can enumerate the names, symbols, weights, and indices for each
 species with `~shone.chemistry.FastchemWrapper.get_species`:
 
