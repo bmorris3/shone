@@ -62,17 +62,13 @@ Example opacity file
 --------------------
 
 It is often useful to have a small, synthetic opacity file for simple demos and testing.
-You can generate one with `~shone.opacity.generate_synthetic_opacity()`:
-
-.. code-block:: python
+You can generate one with `~shone.opacity.generate_synthetic_opacity()`::
 
     from shone.opacity import generate_synthetic_opacity
 
     opacity = generate_synthetic_opacity()
 
-You can also lookup and load opacities within the cache like so:
-
-.. code-block:: python
+You can also lookup and load opacities within the cache like so::
 
     from shone.opacity import Opacity
 
@@ -82,32 +78,24 @@ You can also lookup and load opacities within the cache like so:
 Opening opacities
 -----------------
 
-Opacities are loaded and interpolated with the `~shone.opacity.Opacity` class.
-
-.. code-block:: python
+Opacities are loaded and interpolated with the `~shone.opacity.Opacity` class:: 
 
     from shone.opacity import Opacity
 
 We can check which species are already chached and available on your
-machine using `~shone.opacity.Opacity.get_available_species()`:
-
-.. code-block:: python
+machine using `~shone.opacity.Opacity.get_available_species()`::
 
     Opacity.get_available_species()
 
 This will return a table of available opacity grids on disk.
 
 Let's load the opacity created by `~shone.opacity.generate_synthetic_opacity()`
-(see the step above):
-
-.. code-block:: python
+(see the step above)::
 
     opacity = Opacity.load_species_from_name('synthetic')
 
 The `~shone.opacity.Opacity` object contains the opacity grid as a `~xarray.DataArray`
-in its `grid` attribute. You can see the dimensions of the grid with:
-
-.. code-block:: python
+in its `grid` attribute. You can see the dimensions of the grid with:: 
 
     >>> print(opacity.grid.coords)
     Coordinates:

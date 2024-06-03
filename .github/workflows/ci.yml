@@ -13,15 +13,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
-    with:
-      envs: |
-        - name: tests, py3.11
-          linux: test
-          os: ubuntu-latest
-          python-version: 3.11
-        - name: Code style checks
-          python: 3.11
-          os: ubuntu-latest
-          linux: codestyle
+  ci_tests:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - name: tests, py3.11
+            os: ubuntu-latest
+            python: "3.11"
+            toxenv: py311-test-cov
+
+          - name: Code style checks
+            os: ubuntu-latest
+            python: "3.11"
+            toxenv: codestyle
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up python ${{ matrix.python }} on ${{ matrix.os }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install base dependencies
+      run: python -m pip install --upgrade pip tox
+    - name: Test/run with tox
+      run: tox -e ${{ matrix.toxenv }} -- ${{ matrix.toxposargs }}
+    - name: Upload coverage to artifacts
+      if: "contains(matrix.toxenv, '-cov')"
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage_${{ matrix.toxenv }}.xml
+        path: coverage.xml
+        if-no-files-found: error
+  
+  upload-codecov:
+    needs: [ ci_tests ]
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    name: Upload Coverage
+    steps:
+    - name: Download coverage artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: coverage
+        pattern: coverage_*
+        merge-multiple: true
+    - name: Upload report to Codecov
+      if: ${{ hashFiles('coverage/') != '' }}
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: coverage
+        fail_ci_if_error: true
+        verbose: true
