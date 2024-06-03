@@ -21,7 +21,13 @@ jobs:
           linux: test
           os: ubuntu-latest
           python-version: 3.11
+
         - name: Code style checks
           python: 3.11
           os: ubuntu-latest
           linux: codestyle
+
+        - name: Upload coverage reports to Codecov
+            uses: codecov/codecov-action@v4.0.1
+            with:
+              token: ${{ secrets.CODECOV_TOKEN }}
