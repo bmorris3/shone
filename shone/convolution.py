@@ -22,7 +22,7 @@ def solid_body_rotation_kernel(velocity, vsini, u1=0, u2=0):
         Rotation kernel.
     """
     velocity_ratio = velocity / vsini
-    #G = (2*(1-E)*np.sqrt((1-Dv**2))+0.5*np.pi*E*(1-Dv**2))# /(np.pi*vsini*(1-E/3))
+    
     rotation_kernel = (
         -2/3 * jnp.sqrt(1 - velocity_ratio**2) *
         (3 * u1 + 2 * u2 * velocity_ratio**2 + u2 - 3) +
