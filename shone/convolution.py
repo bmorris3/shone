@@ -1,6 +1,6 @@
 import numpy as np
-from jax import numpy as jnp, jit
-
+from jax import numpy as jnp, jit, lax
+from astropy.constants import c
 
 def solid_body_rotation_kernel(velocity, vsini, u1=0, u2=0):
     """
@@ -22,7 +22,7 @@ def solid_body_rotation_kernel(velocity, vsini, u1=0, u2=0):
         Rotation kernel.
     """
     velocity_ratio = velocity / vsini
-
+    #G = (2*(1-E)*np.sqrt((1-Dv**2))+0.5*np.pi*E*(1-Dv**2))# /(np.pi*vsini*(1-E/3))
     rotation_kernel = (
         -2/3 * jnp.sqrt(1 - velocity_ratio**2) *
         (3 * u1 + 2 * u2 * velocity_ratio**2 + u2 - 3) +
@@ -36,9 +36,85 @@ def solid_body_rotation_kernel(velocity, vsini, u1=0, u2=0):
     )
     return rotation_kernel
 
+@jit
+def planet_rotation_blurring(wavelength, flux, planet_radius, period, orbit_incl, sigma):
+    """
+    Blurring of spectral lines due to rotating planetary atmosphere.
+
+    Parameters
+    ----------
+    wavelength : array
+        Wavelength axis of the spectrum.
+    flux : array
+        Spectrum of the atmosphere.
+    planet_radius : float
+        Planet radius in cgs units [cm].
+    period : float
+        Planet rotation period in cgs units [s].
+    orbit_incl : float
+        Orbital inclination in degrees. 
+    sigma : float
+        Standard deviation of the Gaussian kernel in the
+        same units as ``wavelength``.
+
+    Returns
+    -------
+    flux_conv : array
+        Convoluted spectrum.
+    """
+    
+    fx_norm = flux / jnp.sum(flux) # normalized flux
+    
+    n = 10_000.
+    a = jnp.arange(n) / (n-1) * jnp.pi
+    
+    max_rotational_velocity = (2 * jnp.pi * planet_radius / period * jnp.sin(jnp.radians(orbit_incl))) # in cm/s
+    rotational_velocity_range = jnp.cos(a) * max_rotational_velocity
+    
+    def shift_and_coadd(
+        wavelength, velocity, flux
+    ):
+
+        def iterate_velocities(
+            carry, j,
+            wavelength = jnp.array(wavelength),
+            velocity = jnp.array(velocity),
+            flux = jnp.array(flux)
+        ):
+            return carry, jnp.interp(
+                wavelength,
+                wavelength * (1 + velocity[j] / c.cgs.value),  # this is the shifted wavelength
+                flux
+            )
+            
+        flux_interp_sum = lax.scan(
+            iterate_velocities, 0.0, jnp.arange(len(velocity))
+        )[1]
+        
+        F = jnp.nansum(flux_interp_sum, axis=0)
+        
+        return F
+    
+    f_gauss = shift_and_coadd(
+        wavelength=wavelength,
+        velocity=rotational_velocity_range,
+        flux=fx_norm
+    )
+    
+    
+    
+    flux_conv = fft_convolve_gaussian(
+        wavelength = wavelength,
+        flux = f_gauss / jnp.sum(f_gauss), # normalized again 
+        sigma = sigma
+    )
+    
+    return flux_conv
+    
+    
 
 @jit
-def gaussian_kernel(x, sigma):
+def gaussian_kernel(x, x0, sigma):
     """
     Gaussian kernel.
 
@@ -46,6 +122,9 @@ def gaussian_kernel(x, sigma):
     ----------
     x : array
         Dispersion axis.
+    x0 : float
+        Center of Gaussian in the same units as
+         ``x``.
     sigma : float
         Standard deviation of the kernel in the
         same units as ``x``.
@@ -57,7 +136,7 @@ def gaussian_kernel(x, sigma):
     """
     return (
         1 / jnp.sqrt(2 * np.pi * sigma**2) *
-        jnp.exp(-0.5 * x**2 / sigma ** 2)
+        jnp.exp(-0.5 * (x-x0)**2 / sigma ** 2)
     )
 
 
@@ -84,7 +163,7 @@ def fft_convolve_gaussian(wavelength, flux, sigma):
     n = len(wavelength)
     f = jnp.fft.fft(flux)
     x = jnp.arange(n)
-    x0 = x.mean()
+    x0 = x.mean() + 0.5 # to account for the stepsize
     k = gaussian_kernel(x, x0=x0, sigma=sigma)
     f_k = jnp.fft.fft(k / jnp.sum(k))
     c_2 = jnp.fft.ifft(f * f_k.conjugate())
