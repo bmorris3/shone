@@ -12,6 +12,8 @@ from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_
 
 from shone.config import shone_dir, tiny_archives_dir
 from shone.chemistry import isotopologue_to_species
+from shone.spectrum import bin_spectrum
+
 
 __all__ = ['Opacity', 'generate_synthetic_opacity']
 
@@ -83,6 +85,78 @@ class Opacity:
             )
 
         return interp_vmap
+
+    def get_binned_interpolator(self, wavelength, temperature, pressure):
+        """
+        Return a jitted opacity interpolator binned onto
+        wavelength axis ``wavelength``.
+
+        Returns
+        -------
+        interp : function
+            A just-in-time compiled opacity interpolator.
+        """
+        # first crop the opacity grid on (wl, p, T) axes:
+        crop_wavelength = (
+            (0.99 * wavelength.min() < self.grid.wavelength) &
+            (self.grid.wavelength < 1.01 * wavelength.max())
+        )
+
+        crop_temperature = (
+            (temperature.min() <= self.grid.temperature) &
+            (self.grid.temperature <= temperature.max())
+        )
+        crop_pressure = (
+            (pressure.min() <= self.grid.pressure) &
+            (self.grid.pressure <= pressure.max())
+        )
+
+        cropped_grid = self.grid.isel(
+            wavelength=crop_wavelength,
+            temperature=crop_temperature,
+            pressure=crop_pressure
+        )
+
+        cropped_grid_numpy = cropped_grid.to_numpy()
+
+        # reshape from shape (N_press, N_temp, N_wavelength) to
+        # shape (N_press * N_temp, N_wavelength)
+        cropped_grid_reshaped = cropped_grid_numpy.reshape((-1, cropped_grid_numpy.shape[-1]))
+        cropped_grid_wavelength = cropped_grid.wavelength.to_numpy()
+
+        rebinned_grid = vmap(
+            lambda op: bin_spectrum(
+                wavelength, cropped_grid_wavelength, op
+            )
+        )(cropped_grid_reshaped)
+
+        rebinned_grid_reshaped = rebinned_grid.reshape(
+            *cropped_grid_numpy.shape[:2], wavelength.size
+        )
+
+        x_grid_points = (
+            jnp.float32(cropped_grid.temperature.to_numpy()),
+            jnp.float32(cropped_grid.pressure.to_numpy()),
+        )
+
+        @partial(jit, static_argnames=('grid',))
+        def interp(
+                interp_temperature, interp_pressure,
+                grid=rebinned_grid_reshaped
+        ):
+            interp_point = jnp.column_stack([
+                interp_temperature,
+                interp_pressure,
+            ]).astype(jnp.float32)
+
+            return nd_interp(
+                interp_point,
+                x_grid_points,
+                grid,
+                axis=0
+            )
+
+        return interp
 
     @classmethod
     def get_available_species(self, shone_directory=None):

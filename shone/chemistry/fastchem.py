@@ -394,7 +394,7 @@ def get_fastchem_interpolator(path=None):
         jnp.float32(grid.log_c_to_o.to_numpy()),
     )
 
-    @partial(jit, donate_argnames=('grid',))
+    @partial(jit, static_argnames=('grid',))
     def interp(
         temperature, pressure, log_m_to_h, log_c_to_o,
         grid=grid.to_numpy().astype(np.float32)
