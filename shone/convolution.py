@@ -32,7 +32,7 @@ def solid_body_rotation_kernel(velocity, vsini, u1=0, u2=0):
     rotation_kernel = jnp.where(
         (velocity_ratio < 1) & (velocity_ratio > -1),
         rotation_kernel,
-        0
+        1e-10
     )
     return rotation_kernel
 
