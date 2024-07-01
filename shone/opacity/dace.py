@@ -13,6 +13,7 @@ from astropy.table import Table
 from dace_query.opacity import Molecule, Atom
 
 from shone.chemistry.translate import species_name_to_common_isotopologue_name
+from shone import config
 
 interp_kwargs = dict(
     method='nearest',
@@ -462,7 +463,7 @@ def create_nc_path_molecule(
         f"{pressure_range[1]}_{int(float(version))}.nc"
     )
 
-    path = os.path.join(os.path.expanduser('~'), '.shone', filename)
+    path = os.path.join(config.shone_dir, filename)
     return path
 
 
@@ -497,7 +498,7 @@ def create_nc_path_atom(
         f"{pressure_range[1]}_{int(float(version))}.nc"
     )
 
-    path = os.path.join(os.path.expanduser('~'), '.shone', filename)
+    path = os.path.join(config.shone_dir, filename)
     return path
 
 
