@@ -150,7 +150,7 @@ species:
 
     # lookup the column index for O2 in the fastchem VMR matrix:
     idx = species_table.loc['O2']['index']
-    vmr_O2 = chem.vmr()[: idx]
+    vmr_O2 = chem.vmr()[:, idx]
 
 We can plot the VMRs of several species as a function of pressure like so:
 
