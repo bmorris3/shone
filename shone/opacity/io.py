@@ -86,6 +86,78 @@ class Opacity:
 
         return interp_vmap
 
+    def get_interpolator_noniso(self, n_levels, mmm):
+        """
+        Return a jitted opacity interpolator for any number
+        of wavelength points, and a range of temperatures
+        and pressures.
+
+        Required
+        -------
+        n_levels : integer
+            Number of atmospheric levels (number of
+            layers + 1).
+        mmm : integer
+            Mean molecular mass.
+        """
+        temperature = self.grid.temperature.to_numpy()
+        pressure = self.grid.pressure.to_numpy()
+        wavelength = self.grid.wavelength.to_numpy()
+
+        grid = self.grid.to_numpy()
+
+        # Make pressure ranges in levels
+        pressure_levels_log = jnp.linspace(jnp.log10(pressure[0]), jnp.log10(pressure[-1]), n_levels)
+        pressure_levels = 10 ** pressure_levels_log
+
+        # Integrate over pressure, for each temperature, for all wavelengths
+        from scipy.interpolate import interp1d  # I used the scipy interpolator but one can change to a jax interpolator if desired
+
+        # Make len(temperature) x len(pressure_levels) x len(wavelength) grid for integration
+        integral_grid_molecule = np.zeros((len(temperature), len(pressure_levels), len(wavelength)))
+
+        # Load integrands for all pressures
+        for i, t in enumerate(temperature):
+
+            # Get opacities for all available pressures
+            opacity_grid = np.zeros((len(pressure), len(wavelength)))
+
+            for j, p in enumerate(pressure):
+                opacity_grid[j] = grid[i][j]
+
+            # Interpolate opacities in each pressure level
+            opacity_interpolator = interp1d(jnp.log10(pressure), opacity_grid, axis=0,
+                                            bounds_error=False, fill_value=(opacity_grid[0], opacity_grid[-1]),
+                                            assume_sorted=True)
+            opacity_grid_all_levels = opacity_interpolator(pressure_levels_log)
+
+            # Integrate opacities in each pressure level
+            for j, p in enumerate(pressure_levels):
+                p_cgs = p * 1e6
+
+                pressure_sliced = pressure_levels[:j+1] * 1e6  # Slice up to pressure p and convert to cgs
+                opacity_grid_sliced = opacity_grid_all_levels[:j+1]
+
+                sigma = opacity_grid_sliced * mmm  # Calculate cross section. Array of (len(pressure_sliced), len(wavelength))
+                integrand = (sigma.T * pressure_sliced).T  # Make integrand. Array of (len(pressure_sliced), len(wavelength))
+                y_integral = jnp.sqrt(jnp.log(p_cgs / pressure_sliced))  # Array of len(pressure_sliced)
+
+                integral_value = -jnp.trapezoid(integrand, y_integral, axis=0)  # Negative because we're integrating from 0 to p
+                integral_grid_molecule[i, j] = integral_value  # Novais et al. (2024) Equation A5
+
+        # Interpolate integral in each temperature
+        integral_molecules = []
+
+        interp_grid = interp1d(temperature, integral_grid_molecule, axis=0,
+                                 bounds_error=False,
+                                 fill_value=(integral_grid_molecule[0], integral_grid_molecule[-1]),
+                                 assume_sorted=True)
+
+        for i, t in enumerate(temperature):
+            integral_molecules.append(interp_grid(t))
+
+        return interp_grid, integral_molecules
+
     def get_binned_interpolator(self, wavelength, temperature, pressure):
         """
         Return a jitted opacity interpolator binned onto
@@ -200,13 +272,13 @@ class Opacity:
             if len(file_name.split('_')) == 8:
                 (
                     atom, charge, line_list,
-                    temperature_range, pressure_range,
+                    temperature, pressure,
                     version
                 ) = parse_nc_path_atom(file_name)
             elif len(file_name.split('_')) == 7:
                 (
                     isotopologue, line_list,
-                    temperature_range, pressure_range,
+                    temperature, pressure,
                     version
                 ) = parse_nc_path_molecule(file_name)
             else:
@@ -294,7 +366,7 @@ class Opacity:
         return cls(path=nc_path)
 
 
-def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
+def generate_synthetic_opacity(temperature, pressure, wavelength, filename="synthetic_example_0_0_0_0_0.nc"):
     """
     Construct a netCDF file containing a synthetic opacity grid.
     Useful for examples in the tests and documentation.
@@ -311,9 +383,11 @@ def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
 
     np.random.seed(42)
 
-    temperature = np.arange(200, 1200, 200)
-    pressure = np.geomspace(1e-6, 10, 2)
-    wavelength = np.geomspace(0.5, 5, 1000)
+    #temperature = np.arange(200, 1200, 200)
+    #pressure = np.geomspace(1e-6, 10, 2)
+    #wavelength = np.geomspace(0.5, 5, 1000)
+    
+    #print(jnp.shape(temperature), jnp.shape(pressure), jnp.shape(wavelength))
 
     kappa = np.random.uniform(size=wavelength.size)
     x = np.arange(len(kappa))
