@@ -1,13 +1,10 @@
-from jax import numpy as jnp, jit
-from shone.constants import m_p, k_B, bar_to_dyn_cm2, k_B_over_m_p
+from jax import numpy as jnp
+from shone.constants import m_p, k_B, bar_to_dyn_cm2
 import sys
-import numpy as np
-jnp.set_printoptions(threshold=sys.maxsize)
 
 __all__ = ['transmission_radius_nonisobaric']
 
 
-#@jit
 def transmission_radius_nonisobaric(interpolator_grid, P_cloudtop, R0, P0, T0, m_H20, X_H2O, g, Pmin, n_levels, wavelength):
     """
     Compute the radius spectrum for planet observed in transmission
@@ -55,12 +52,14 @@ def transmission_radius_nonisobaric(interpolator_grid, P_cloudtop, R0, P0, T0, m
     P0_cgs = P0 * bar_to_dyn_cm2  # [dyn / cm^2]
 
     # Define range of pressure for non-isobaric integration
-    pressure_levels_cgs = 10 ** jnp.linspace(jnp.log10(Pmin), jnp.log10(P0), n_levels) * bar_to_dyn_cm2
+    pressure_levels_cgs = 10 ** jnp.linspace(jnp.log10(Pmin),
+                                             jnp.log10(P0),
+                                             n_levels) * bar_to_dyn_cm2
 
     # Define cloud opacity from cloud-top pressure
     P_cloudtop_cgs = P_cloudtop * bar_to_dyn_cm2
     cloud_tau = jnp.zeros((len(pressure_levels_cgs), len(wavelength)))
-    cloud_tau = cloud_tau.at[pressure_levels_cgs > P_cloudtop_cgs,:].set(jnp.inf)
+    cloud_tau = cloud_tau.at[pressure_levels_cgs > P_cloudtop_cgs, :].set(jnp.inf)
 
     # Define mass
     solar_H2, solar_He = 0.5, 0.085114
@@ -74,16 +73,18 @@ def transmission_radius_nonisobaric(interpolator_grid, P_cloudtop, R0, P0, T0, m
 
     # Interpolate optical depth in given temperature and find opacity
     integral_opacities = interpolator_grid(T0) * X_H2O
-    tau_values_int = integral_opacities  # (len(pressure_levels), len(wavelength))
+    tau_values_int = integral_opacities
 
-    factor = 2 * jnp.sqrt(2 * scale_height * R0) / k_B / T0  # array of len(pressure_levels)
-    tau_val = (tau_values_int.T * factor).T + cloud_tau # array of (len(pressure_levels), len(wavelength))
-    h_integrand1 = (R0 + scale_height * jnp.log(P0_cgs / pressure_levels_cgs)) / pressure_levels_cgs  # array of len(pressure_levels)
-    h_integrand2 = 1 - jnp.exp(-tau_val)  # array of (len(pressure_levels), len(wavelength))
-    h_integrand = (h_integrand2.T * h_integrand1).T  # array of (len(pressure_levels), len(wavelength))
-
+    factor = 2 * jnp.sqrt(2 * scale_height * R0) / k_B / T0
+    tau_val = (tau_values_int.T * factor).T + cloud_tau
+    h_integrand1 = (R0 + scale_height * jnp.log(P0_cgs / pressure_levels_cgs)) / pressure_levels_cgs
+    h_integrand2 = 1 - jnp.exp(-tau_val)
+    h_integrand = (h_integrand2.T * h_integrand1).T
+    
     # Integrate over pressure
-    h_integral_values = jnp.trapezoid(h_integrand, pressure_levels_cgs, axis=0)  # array of len(wavelength)
+    h_integral_values = jnp.trapezoid(h_integrand,
+                                      pressure_levels_cgs,
+                                      axis=0)
 
     # Novais et al. (2024, in prep) Equation A8.
     # Only applies to non-isobaric atmospheres:
@@ -92,3 +93,4 @@ def transmission_radius_nonisobaric(interpolator_grid, P_cloudtop, R0, P0, T0, m
     radius = R0 + h_values
 
     return radius
+    
