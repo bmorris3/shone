@@ -1,11 +1,12 @@
 from jax import numpy as jnp
 from shone.constants import m_p, k_B, bar_to_dyn_cm2
-import sys
 
 __all__ = ['transmission_radius_nonisobaric']
 
 
-def transmission_radius_nonisobaric(interpolator_grid, P_cloudtop, R0, P0, T0, m_H20, X_H2O, g, Pmin, n_levels, wavelength):
+def transmission_radius_nonisobaric(interpolator_grid, P_cloudtop,
+                                    R0, P0, T0, m_H20, X_H2O, g,
+                                    Pmin, n_levels, wavelength):
     """
     Compute the radius spectrum for planet observed in transmission
     with a non-isobaric atmosphere.
