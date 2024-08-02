@@ -57,7 +57,7 @@ class Opacity:
             jnp.float32(self.grid.wavelength.to_numpy()),
         )
 
-        @partial(jit, donate_argnames=('grid',))
+        @partial(jit, static_argnames=('grid',))
         def interp(
                 interp_wavelength, interp_temperature, interp_pressure,
                 grid=self.grid.to_numpy()
@@ -75,6 +75,7 @@ class Opacity:
                 axis=0
             )
 
+        @jit
         def interp_vmap(wavelength, temperature, pressure):
             temperature = jnp.atleast_1d(temperature)
             pressure = jnp.atleast_1d(pressure)
@@ -106,10 +107,15 @@ class Opacity:
             (temperature.min() <= self.grid.temperature) &
             (self.grid.temperature <= temperature.max())
         )
-        crop_pressure = (
-            (pressure.min() <= self.grid.pressure) &
-            (self.grid.pressure <= pressure.max())
-        )
+
+        if self.grid.pressure.size == 2:
+            # handle atoms:
+            crop_pressure = jnp.array([True, True])
+        else:
+            crop_pressure = (
+                (pressure.min() <= self.grid.pressure) &
+                (self.grid.pressure <= pressure.max())
+            )
 
         cropped_grid = self.grid.isel(
             wavelength=crop_wavelength,
@@ -156,7 +162,17 @@ class Opacity:
                 axis=0
             )
 
-        return interp
+        @jit
+        def interp_vmap(temperature, pressure):
+            temperature = jnp.atleast_1d(temperature)
+            pressure = jnp.atleast_1d(pressure)
+            return jnp.squeeze(
+                vmap(
+                    lambda t, p: interp(t, p)
+                )(temperature, pressure)
+            )
+
+        return interp_vmap
 
     @classmethod
     def get_available_species(self, shone_directory=None):
