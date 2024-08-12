@@ -536,7 +536,7 @@ transiting a Sun-like star using
     cgs_args = (arg.cgs.value for arg in args)
 
     # compute the planetary radius as a function of wavelength:
-    Rp = heng_kitzmann_2017.transmission_radius_isothermal(
+    Rp = heng_kitzmann_2017.transmission_radius_isothermal_isobaric(
         example_opacity + kappa_cloud, *cgs_args
     )
 
@@ -599,7 +599,7 @@ Now let's plot the result:
     cgs_args = (arg.cgs.value for arg in args)
 
     # compute the planetary radius as a function of wavelength:
-    Rp = heng_kitzmann_2017.transmission_radius_isothermal(example_opacity + kappa_cloud, *cgs_args)
+    Rp = heng_kitzmann_2017.transmission_radius_isothermal_isobaric(example_opacity + kappa_cloud, *cgs_args)
 
     # convert to transit depth:
     Rstar = (1 * u.R_sun).cgs.value

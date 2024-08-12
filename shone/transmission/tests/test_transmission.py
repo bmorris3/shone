@@ -34,7 +34,7 @@ def test_hk_vs_dws():
         interp_opacity(wavelength, T_0, P_0) + kappa_cloud
     )
 
-    R_p_isothermal = heng_kitzmann_2017.transmission_radius_isothermal(
+    R_p_isothermal = heng_kitzmann_2017.transmission_radius_isothermal_isobaric(
         kappa, R_0, P_0, T_0, mmw, g
     )
 
