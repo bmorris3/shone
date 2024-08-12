@@ -520,7 +520,7 @@ Compute transmission
 
 We can compute a transmission spectrum for an Earth-sized planet
 transiting a Sun-like star using
-`~shone.transmission.transmission_radius_isothermal`:
+`~shone.transmission.transmission_radius_isothermal_isobaric`:
 
 .. code-block:: python
 
