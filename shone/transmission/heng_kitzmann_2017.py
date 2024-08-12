@@ -1,11 +1,11 @@
 from jax import numpy as jnp, jit
 from shone.constants import bar_to_dyn_cm2, k_B_over_m_p
 
-__all__ = ['transmission_radius_isothermal']
+__all__ = ['transmission_radius_isothermal_isobaric']
 
 
 @jit
-def transmission_radius_isothermal(kappa, R_0, P_0, T_0, mmw, g):
+def transmission_radius_isothermal_isobaric(kappa, R_0, P_0, T_0, mmw, g):
     """
     Compute the radius spectrum for planet observed in transmission
     with an isothermal atmosphere.
