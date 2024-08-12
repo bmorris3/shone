@@ -29,10 +29,10 @@ def transmission_radius_nonisobaric(interpolator_grid, P_cloudtop,
         Reference pressure [bar].
     T_0 : float
         Reference temperature [K].
-    m_H2O : float
-        Water mass [g / mol].
-    X_H2O : float
-        Water abundance fraction.
+    m_i : float
+        Species mass [g / mol].
+    vmr_i : float
+        Species volume mixing ratio.
     g : float
         Surface gravity [cm / s^2], assumed to be uniform
         with height.
