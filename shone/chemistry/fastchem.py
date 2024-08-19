@@ -78,6 +78,9 @@ class FastchemWrapper:
         c_to_o_ratio=0.5888,
         elemental_abundances_path=None,
         fit_coefficients_path=None,
+        fit_coefficients_condensates_path=None,
+        rainout_condensation=False,
+        equilibrium_condensation=False,
         quiet=False
     ):
         """
@@ -98,6 +101,11 @@ class FastchemWrapper:
             Path to elemental abundances for FastChem.
         fit_coefficients_path : str (path-like), optional
             Path to fit coefficients for FastChem.
+        fit_coefficients_condensates_path : str (path-like), optional
+
+        rainout_condensation : bool, optional
+        equilibrium_condensation : bool, optional
+
         quiet : bool, optional
             Raise warnings for machine configurations that may
             produce inaccurate results. Default is False.
@@ -113,27 +121,37 @@ class FastchemWrapper:
         self.c_to_o_ratio = c_to_o_ratio
 
         if elemental_abundances_path is None:
-            elemental_abundances_path = os.path.join(
+            elemental_abundances_path = os.path.abspath(os.path.join(
                 os.path.dirname(__file__),
                 '..', 'data',
                 'asplund_2020.dat'
-            )
+            ))
 
         if fit_coefficients_path is None:
-            fit_coefficients_path = os.path.join(
+            fit_coefficients_path = os.path.abspath(os.path.join(
                 os.path.dirname(__file__),
                 '..', 'data', 'logK.dat'
-            )
+            ))
+
+        if fit_coefficients_condensates_path is None:
+            fit_coefficients_condensates_path = os.path.abspath(os.path.join(
+                os.path.dirname(__file__),
+                '..', 'data', 'logK_condensates.dat'
+            ))
 
         fastchem = FastChem(
-            elemental_abundances_path,
-            fit_coefficients_path, 0
+            elemental_abundances_path, fit_coefficients_path,
+            fit_coefficients_condensates_path, 0
         )
         self.fastchem = fastchem
         self.solar_abundances = np.array(self.fastchem.getElementAbundances())
 
         # create the input and output structures for FastChem
         self._input_data = FastChemInput()
+        # use equilibrium condensation
+        self._input_data.equilibrium_condensation = equilibrium_condensation
+        self._input_data.rainout_condensation = rainout_condensation
+
         self._input_data.temperature = self.temperature
         self._input_data.pressure = self.pressure
 
