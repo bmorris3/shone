@@ -5,7 +5,7 @@ import warnings
 from functools import partial
 
 import numpy as np
-from jax import numpy as jnp, jit
+from jax import numpy as jnp, jit, vmap
 from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 from tqdm.auto import tqdm
 import xarray as xr
@@ -296,6 +296,8 @@ def round_in_log(x):
 def build_fastchem_grid(
     temperature=None, pressure=None,
     log_m_to_h=None, log_c_to_o=None,
+    rainout_condensation=False,
+    equilibrium_condensation=False,
     n_species=523
 ):
     """
@@ -314,6 +316,10 @@ def build_fastchem_grid(
         Metallicity grid. Default is log-spaced from -1 to 3.
     log_c_to_o : array-like
         C/O grid. Default is log-spaced from -1 to 0.3.
+    rainout_condensation : bool
+        Passed to FastchemWrapper.
+    equilibrium_condensation : bool
+        Passed to FastchemWrapper.
     n_species : int
         Number of species in this FastChem computation.
 
@@ -351,7 +357,9 @@ def build_fastchem_grid(
             chem2d = FastchemWrapper(
                 temperature2d.ravel(), pressure2d.ravel(),
                 metallicity=10 ** log_mh,
-                c_to_o_ratio=10 ** log_co
+                c_to_o_ratio=10 ** log_co,
+                rainout_condensation=rainout_condensation,
+                equilibrium_condensation=equilibrium_condensation
             )
 
             mmr_mmw = chem2d.mmr_mmw().reshape((*pressure2d.shape, n_species))
@@ -446,6 +454,78 @@ def get_fastchem_interpolator(path=None):
     return interp
 
 
+def get_fastchem_interpolator_fixed_mh_co(path=None, metallicity=1, c_to_o_ratio=0.588):
+    """
+    Return a jitted FastChem abundance interpolator with
+    fixed metallicity and C/O ratio.
+
+    Returns
+    -------
+    interp : function
+        A just-in-time compiled opacity interpolator.
+    """
+    if path is None:
+        path = os.path.join(shone_dir, fastchem_grid_filename)
+
+    if not os.path.exists(path):
+        raise ValueError(
+            f"Expected precomputed FastChem grid at {path}, "
+            "but none was found. Run `build_fastchem_grid()` to "
+            "create one."
+        )
+
+    with xr.open_dataset(path) as ds:
+        grid = ds.vmr.interp(log_m_to_h=np.log10(metallicity), log_c_to_o=np.log10(c_to_o_ratio))
+
+    x_grid_points = (
+        jnp.float32(grid.pressure.to_numpy()),
+        jnp.float32(grid.temperature.to_numpy()),
+    )
+
+    @partial(jit, static_argnames=('grid',))
+    def interp(
+        temperature, pressure,
+        grid=grid.to_numpy().astype(np.float32)
+    ):
+        """
+        Parameters
+        ----------
+        temperature : float or array
+            Temperature value.
+        pressure : float or array
+            Pressure value.
+        log_m_to_h : float
+            [M/H] value.
+        log_c_to_o : float
+            [C/O] value.
+        """
+        interp_point = jnp.column_stack([
+            pressure,
+            temperature,
+        ]).astype(jnp.float32)
+
+        return nd_interp(
+            interp_point,
+            x_grid_points,
+            grid,
+            axis=0
+        )
+
+    @jit
+    def interp_vmap(temperature, pressure):
+        temperature = jnp.atleast_1d(temperature)
+        pressure = jnp.atleast_1d(pressure)
+        return jnp.squeeze(
+            vmap(
+                lambda t, p: interp(t, p)
+            )(temperature, pressure)
+        )
+
+        return interp_vmap
+
+    return interp_vmap
+
+
 def _fastchem_species_table(fastchem=None):
     """
     Return a table of the species included in FastChem.
@@ -510,24 +590,23 @@ def number_density(temperature, pressure):
     Returns
     -------
     n : array
-        Number density at each pressure and temperature.
+        Number density [cm^-3] at each pressure and temperature.
     """
     return pressure * bar_to_dyn_cm2 / (k_B * temperature)
 
 
-def mass_density(temperature, pressure, vmr):
+def mass_density(temperature, pressure, vmr, weights):
     # [AMU / cm3]
-    species_table = fastchem_species_table()
     n_total = number_density(temperature, pressure)
     rho = jnp.sum(
-        vmr * n_total[:, None] *
-        species_table['weight'],
+        vmr * jnp.atleast_1d(n_total)[:, None] *
+        weights,
         axis=1
     )
     return rho
 
 
-def mean_molecular_weight(temperature, pressure, vmr):
+def mean_molecular_weight(temperature, pressure, vmr, weights):
     """
     Mean molecular weight [AMU] at each pressure and
     temperature for an ideal gas.
@@ -546,7 +625,7 @@ def mean_molecular_weight(temperature, pressure, vmr):
     mean_molecular_weight_amu : array
         Mean molecular weight [AMU].
     """
-    rho = mass_density(temperature, pressure, vmr)
+    rho = mass_density(temperature, pressure, vmr, weights)
     mean_molecular_weight_amu = rho / (pressure * bar_to_dyn_cm2 / (k_B * temperature))
     return mean_molecular_weight_amu
 

@@ -12,8 +12,7 @@ from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_
 
 from shone.config import shone_dir, tiny_archives_dir
 from shone.chemistry import isotopologue_to_species
-from shone.spectrum import bin_spectrum
-
+from shone.opacity.binning import bin_opacity
 
 __all__ = ['Opacity', 'generate_synthetic_opacity']
 
@@ -131,7 +130,7 @@ class Opacity:
         cropped_grid_wavelength = cropped_grid.wavelength.to_numpy()
 
         rebinned_grid = vmap(
-            lambda op: bin_spectrum(
+            lambda op: bin_opacity(
                 wavelength, cropped_grid_wavelength, op
             )
         )(cropped_grid_reshaped)
