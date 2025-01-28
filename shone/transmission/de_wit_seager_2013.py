@@ -51,9 +51,10 @@ def delta_z_i(temperature, pressure, g, mmw):
     """
     pressure_bottom = pressure[1:]  # pressures at bottoms of layers
     pressure_top = pressure[:-1]  # pressures at tops of layers
+    mu_g = jnp.clip(mmw[1:] * g, 1e-6)
 
     return (
-        temperature[1:] / (mmw[1:] * g) * k_B_over_m_p *
+        temperature[1:] / mu_g * k_B_over_m_p *
         jnp.log(pressure_bottom / pressure_top)
     )
 
@@ -87,7 +88,7 @@ def radius_at_layer(temperature, pressure, g, mmw, R_p0):
     )[::-1]
     # add zeroth height:
     dz = jnp.concatenate([jnp.array([0]), dz])
-    return R_p0 + jnp.cumsum(dz)
+    return R_p0 + jnp.nancumsum(dz)
 
 
 @jit
@@ -121,9 +122,10 @@ def transmission_chord_length(temperature, pressure, g, mmw, R_p0):
         altitude of `pressure`.
     """
     R_0 = radius_at_layer(temperature, pressure, g, mmw, R_p0)
-    dx = 2 * (R_0.max()**2 - R_0**2)**0.5
-
-    return jnp.where(~jnp.isnan(dx), dx, 0)
+    dx = (
+        2 * (jnp.nanmax(R_0) ** 2 - R_0 ** 2) ** 0.5
+    )
+    return dx
 
 
 @partial(jit, static_argnames="rayleigh_scattering absorption".split())
@@ -189,9 +191,8 @@ def transmission_radius(
         f"`{rayleigh_scattering=}` argument must be "
         f"boolean; got type {type(rayleigh_scattering)}."
     )
-
     # compute number densities of all species and for scattering species:
-    mmw = mean_molecular_weight(temperature, pressure, vmr)
+    mmw = mean_molecular_weight(temperature, pressure, vmr, weights_amu)
     n_total = number_density(temperature, pressure)
     n_scatter = vmr[:, scatter_indices] * n_total[:, None]
 
