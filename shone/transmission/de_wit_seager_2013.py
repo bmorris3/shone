@@ -122,21 +122,24 @@ def transmission_chord_length(temperature, pressure, g, mmw, R_p0):
         altitude of `pressure`.
     """
     R_0 = radius_at_layer(temperature, pressure, g, mmw, R_p0)
-    R_max = 3 * R_p0
+
+    # this "max" should be some number >R_p0, but not precisely
+    # max(R_0), since that produces dx=0, which leads to nans elsewhere
+    R_max = 1.5 * R_p0
     dx = (
         2 * jnp.sqrt(R_max ** 2 - R_0 ** 2)
     )
     return dx
 
 
-@partial(jit, static_argnames="rayleigh_scattering absorption".split())
+@partial(jit, static_argnames=("rayleigh_scattering", "absorption"))
 def transmission_radius(
     wavelength, temperature, pressure,
     g, R_p0, opacity,
     vmr, vmr_indices,
     weights_amu,
     rayleigh_scattering=True,
-    absorption=True,
+    absorption=True
 ):
     """
     Compute the radius spectrum for planet observed in transmission.
