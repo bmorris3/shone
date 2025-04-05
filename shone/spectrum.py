@@ -1,5 +1,3 @@
-from functools import partial
-import numpy as np
 from jax import numpy as jnp, jit, lax
 from jax.scipy.integrate import trapezoid
 
