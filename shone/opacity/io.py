@@ -109,7 +109,7 @@ class Opacity:
 
         if self.grid.pressure.size == 2:
             # handle atoms:
-            crop_pressure = jnp.array([True, True])
+            crop_pressure = np.array([True, True])
         else:
             crop_pressure = (
                 (pressure.min() <= self.grid.pressure) &
