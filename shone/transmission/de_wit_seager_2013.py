@@ -87,7 +87,7 @@ def radius_at_layer(temperature, pressure, g, mmw, R_p0):
         temperature, pressure, g, mmw
     )[::-1]
     # add zeroth height:
-    dz = jnp.concatenate([jnp.array([0]), dz])
+    dz = jnp.concatenate([jnp.array([0.0]), dz])
     return R_p0 + jnp.nancumsum(dz)
 
 
@@ -122,8 +122,9 @@ def transmission_chord_length(temperature, pressure, g, mmw, R_p0):
         altitude of `pressure`.
     """
     R_0 = radius_at_layer(temperature, pressure, g, mmw, R_p0)
+    R_max = 3 * R_p0
     dx = (
-        2 * (jnp.nanmax(R_0) ** 2 - R_0 ** 2) ** 0.5
+        2 * jnp.sqrt(R_max ** 2 - R_0 ** 2)
     )
     return dx
 
