@@ -36,6 +36,7 @@ def bin_centers_to_edges(wavelength):
 
 n_interp = 50
 
+
 @jit
 def gauss_points(kappa_sliced):
     y = jnp.linspace(-1, 1, kappa_sliced.shape[0])
@@ -47,6 +48,7 @@ def gauss_points(kappa_sliced):
 
     kappa_y_gauss_points = jnp.interp(roots_10, y, kappa_y)
     return kappa_y_gauss_points
+
 
 @jit
 def bin_opacity(output_wavelength, input_wavelength, input_flux):
@@ -76,7 +78,9 @@ def bin_opacity(output_wavelength, input_wavelength, input_flux):
     kappa = jnp.array(input_flux)
 
     def slicer(start_idx, stop_idx):
-        wl_interp_grid = jnp.linspace(input_wavelength[start_idx], input_wavelength[stop_idx], n_interp)
+        wl_interp_grid = jnp.linspace(
+            input_wavelength[start_idx], input_wavelength[stop_idx], n_interp
+        )
         return jnp.interp(wl_interp_grid, input_wavelength, kappa)
 
     def body_fun(i, inds):
@@ -90,7 +94,7 @@ def bin_opacity(output_wavelength, input_wavelength, input_flux):
         return i + 1, new_opacity
 
     _, binned_spectrum = lax.scan(
-         body_fun, 0, indices
+        body_fun, 0, indices
     )
 
     return binned_spectrum
