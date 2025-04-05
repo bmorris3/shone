@@ -1,5 +1,4 @@
 from jax import numpy as jnp, jit, lax
-from jax.scipy.integrate import trapezoid
 
 __all__ = ['bin_spectrum']
 
@@ -107,10 +106,11 @@ def body_fun(i, old_widths, old_edges, new_edges, in_flux, in_idx, indices):
     )
 
     nonzero = old_widths_weighted > 0
-    old_centers = 0.5 * (old_edges[1:] + old_edges[:-1])
-    new_flux = (
-        trapezoid(in_flux * nonzero, old_centers) /
-        (new_edges[i + 1] - new_edges[i])
+    new_flux = jnp.sum(
+        old_widths_weighted * in_flux,
+        where=nonzero
+    ) / jnp.sum(
+        old_widths_weighted, where=nonzero
     )
 
     return i + 1, new_flux
