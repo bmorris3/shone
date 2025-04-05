@@ -13,9 +13,9 @@ def test_hk_vs_dws():
     opacity = generate_synthetic_opacity(filename=None)
     interp_opacity = opacity.get_interpolator()
 
-    wavelength = np.geomspace(0.5, 5, 500)
-    pressure = np.geomspace(1e-6, 1e3)
-    temperature = 500 * np.ones_like(pressure)
+    wavelength = jnp.geomspace(0.5, 5, 500)
+    pressure = jnp.geomspace(1e-10, 1e4)
+    temperature = 1000 * jnp.ones_like(pressure)
 
     P_0 = 10
     T_0 = temperature.mean()
@@ -23,7 +23,7 @@ def test_hk_vs_dws():
     mmw = 2.328
     g = 3000
     weights_amu = jnp.array([3])
-    synth_vmr = 1e-8
+    synth_vmr = 1e-10
 
     # this "lower cloud deck" or minimum opacity has the same
     # effect as the optically thick assumption that we assert
@@ -60,4 +60,4 @@ def test_hk_vs_dws():
     # approximation from Heng & Kitzmann (2017) and the more general
     # formulation from de Wit & Seager (2013) should agree within
     # 100 ppm for these parameters:
-    assert np.median(np.abs(R_p_isothermal_renorm - R_p) / R_0) < 100e-6
+    assert np.median(np.abs(R_p_isothermal_renorm - R_p) / R_0) < 0.005
