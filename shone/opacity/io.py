@@ -10,7 +10,7 @@ from astropy.table import Table
 from jax import numpy as jnp, jit, vmap
 from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
 
-from shone.config import shone_dir, tiny_archives_dir
+from shone.config import shone_dir, tiny_archives_dir, float_dtype
 from shone.chemistry import isotopologue_to_species
 from shone.opacity.binning import bin_opacity
 
@@ -51,9 +51,9 @@ class Opacity:
             A just-in-time compiled opacity interpolator.
         """
         x_grid_points = (
-            jnp.float32(self.grid.temperature.to_numpy()),
-            jnp.float32(self.grid.pressure.to_numpy()),
-            jnp.float32(self.grid.wavelength.to_numpy()),
+            float_dtype(self.grid.temperature.to_numpy()),
+            float_dtype(self.grid.pressure.to_numpy()),
+            float_dtype(self.grid.wavelength.to_numpy()),
         )
 
         @partial(jit, static_argnames=('grid',))
@@ -65,7 +65,7 @@ class Opacity:
                 jnp.broadcast_to(interp_temperature, interp_wavelength.shape),
                 jnp.broadcast_to(interp_pressure, interp_wavelength.shape),
                 interp_wavelength,
-            ]).astype(jnp.float32)
+            ]).astype(float_dtype)
 
             return nd_interp(
                 interp_point,
@@ -140,8 +140,8 @@ class Opacity:
         )
 
         x_grid_points = (
-            jnp.float32(cropped_grid.temperature.to_numpy()),
-            jnp.float32(cropped_grid.pressure.to_numpy()),
+            float_dtype(cropped_grid.temperature.to_numpy()),
+            float_dtype(cropped_grid.pressure.to_numpy()),
         )
 
         @partial(jit, static_argnames=('grid',))
@@ -152,7 +152,7 @@ class Opacity:
             interp_point = jnp.column_stack([
                 interp_temperature,
                 interp_pressure,
-            ]).astype(jnp.float32)
+            ]).astype(float_dtype)
 
             return nd_interp(
                 interp_point,
@@ -343,7 +343,7 @@ def generate_synthetic_opacity(filename="synthetic_example_0_0_0_0_0.nc"):
     example_opacity = xr.Dataset(
         data_vars=dict(
             opacity=(["temperature", "pressure", "wavelength"],
-                     kappa.astype(np.float32))
+                     kappa.astype(float_dtype))
         ),
         coords=dict(
             temperature=temperature,

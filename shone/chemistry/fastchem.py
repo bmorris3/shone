@@ -15,7 +15,7 @@ from pyfastchem import (
     FastChem, FastChemInput, FastChemOutput
 )
 
-from shone.config import shone_dir
+from shone.config import shone_dir, float_dtype
 from shone.constants import bar_to_dyn_cm2, k_B
 from shone.chemistry.translate import species_name_to_fastchem_name
 
@@ -344,8 +344,8 @@ def build_fastchem_grid(
         n_species
     )
 
-    results_mmr = np.empty(shape, dtype=np.float32)
-    results_vmr = np.empty(shape, dtype=np.float32)
+    results_mmr = np.empty(shape, dtype=float_dtype)
+    results_vmr = np.empty(shape, dtype=float_dtype)
     temperature2d, pressure2d = np.meshgrid(temperature, pressure)
 
     for i, log_mh in tqdm(
@@ -414,16 +414,16 @@ def get_fastchem_interpolator(path=None):
         grid = ds.vmr
 
     x_grid_points = (
-        jnp.float32(grid.pressure.to_numpy()),
-        jnp.float32(grid.temperature.to_numpy()),
-        jnp.float32(grid.log_m_to_h.to_numpy()),
-        jnp.float32(grid.log_c_to_o.to_numpy()),
+        float_dtype(grid.pressure.to_numpy()),
+        float_dtype(grid.temperature.to_numpy()),
+        float_dtype(grid.log_m_to_h.to_numpy()),
+        float_dtype(grid.log_c_to_o.to_numpy()),
     )
 
     @partial(jit, static_argnames=('grid',))
     def interp(
         temperature, pressure, log_m_to_h, log_c_to_o,
-        grid=grid.to_numpy().astype(np.float32)
+        grid=grid.to_numpy().astype(float_dtype)
     ):
         """
         Parameters
@@ -442,7 +442,7 @@ def get_fastchem_interpolator(path=None):
             temperature,
             jnp.broadcast_to(log_m_to_h, temperature.shape),
             jnp.broadcast_to(log_c_to_o, temperature.shape),
-        ]).astype(jnp.float32)
+        ]).astype(float_dtype)
 
         return nd_interp(
             interp_point,
@@ -478,14 +478,14 @@ def get_fastchem_interpolator_fixed_mh_co(path=None, metallicity=1, c_to_o_ratio
         grid = ds.vmr.interp(log_m_to_h=np.log10(metallicity), log_c_to_o=np.log10(c_to_o_ratio))
 
     x_grid_points = (
-        jnp.float32(grid.pressure.to_numpy()),
-        jnp.float32(grid.temperature.to_numpy()),
+        float_dtype(grid.pressure.to_numpy()),
+        float_dtype(grid.temperature.to_numpy()),
     )
 
     @partial(jit, static_argnames=('grid',))
     def interp(
         temperature, pressure,
-        grid=grid.to_numpy().astype(np.float32)
+        grid=grid.to_numpy().astype(float_dtype)
     ):
         """
         Parameters
@@ -502,7 +502,7 @@ def get_fastchem_interpolator_fixed_mh_co(path=None, metallicity=1, c_to_o_ratio
         interp_point = jnp.column_stack([
             pressure,
             temperature,
-        ]).astype(jnp.float32)
+        ]).astype(float_dtype)
 
         return nd_interp(
             interp_point,
