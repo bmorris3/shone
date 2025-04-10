@@ -372,6 +372,14 @@ def build_fastchem_grid(
 
     coord_names = "pressure temperature log_m_to_h log_c_to_o species".split()
 
+
+    attrs = {str(idx): symbol for idx, symbol in species_table[['index', 'symbol']]}
+    attrs.update(
+        dict(
+            rainout_condensation=rainout_condensation,
+            equilibrium_condensation=equilibrium_condensation,
+        )
+    )
     ds = xr.Dataset(
         data_vars=dict(
             mmr_mmw=(coord_names, results_mmr),
@@ -384,7 +392,7 @@ def build_fastchem_grid(
             log_c_to_o=log_c_to_o,
             species=list(species_table['symbol']),
         ),
-        attrs={str(idx): symbol for idx, symbol in species_table[['index', 'symbol']]}
+        attrs=attrs
     )
 
     ds.to_netcdf(os.path.join(shone_dir, fastchem_grid_filename))
