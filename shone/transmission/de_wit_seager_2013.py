@@ -18,7 +18,7 @@ __all__ = [
 species_table = fastchem_species_table()
 
 scatter_symbols = ['H2', 'He']
-scatter_indices = np.array([
+scatter_indices = jnp.array([
     np.argwhere(species_table['symbol'] == symbol)[0, 0]
     for symbol in scatter_symbols
 ])
@@ -276,6 +276,6 @@ def transmission_radius(
         2 * np.pi * r * (1 - jnp.exp(-tau_padded[::-1])), r, axis=0
     )
 
-    obs_radius = (cross_sectional_area / np.pi) ** 0.5
+    obs_radius = jnp.clip(cross_sectional_area / np.pi, 0) ** 0.5
 
     return obs_radius
