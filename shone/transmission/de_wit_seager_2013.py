@@ -24,120 +24,6 @@ scatter_indices = jnp.array([
 ])
 weights_amu = jnp.array(species_table['weight'])
 
-#
-# @jit
-# def delta_z_i(temperature, pressure, g, mmw):
-#     """
-#     Change in height in an atmosphere from bottom to
-#     top of a pressure layer.
-#
-#     Malik et al. (2017) Equation 18.
-#
-#     Parameters
-#     ----------
-#     temperature : array
-#         Temperature [K].
-#     pressure : array
-#         Pressure at each layer [bar].
-#     g : array or float
-#         Surface gravity [cm/s2]
-#     mmw : array
-#         Mean molecular weight [AMU].
-#
-#     Returns
-#     -------
-#     dz : array
-#         Change in height between adjacent pressure layers.
-#     """
-#     # pressure_bottom = pressure[1:]  # pressures at bottoms of layers
-#     # pressure_top = pressure[:-1]  # pressures at tops of layers
-#     # mu_g = jnp.clip(mmw[1:] * g, 1e-6)
-#     #
-#     # return (
-#     #     temperature[1:] / mu_g * k_B_over_m_p *
-#     #     jnp.log(pressure_bottom / pressure_top)
-#     # )
-#     return (
-#         (pressure[1:] - pressure[:-1]) /
-#         (pressure[1:] * g * mmw[1:] /
-#          (k_B_over_m_p * temperature[1:]))
-#     )
-#
-#
-# @jit
-# def radius_at_layer(temperature, pressure, g, mmw, R_p0):
-#     """
-#     Radius from planet center to each layer, given hydrostatic equilibrium.
-#
-#     Parameters
-#     ----------
-#     temperature : array
-#         Temperature [K].
-#     pressure : array
-#         Pressure [bar].
-#     g : array or float
-#         Surface gravity [cm/s2].
-#     mmw : array or float
-#         Mean molecular weight [AMU].
-#     R_p0 : float
-#         Fiducial planet radius [cm].
-#
-#     Returns
-#     -------
-#     radius : array
-#         Radius [cm] from the planet's center to each
-#         pressure layer.
-#     """
-#     dz = delta_z_i(
-#         temperature, pressure, g, mmw
-#     )[::-1]
-#     # add zeroth height:
-#     dz = jnp.concatenate([jnp.array([0.0]), dz])
-#     radius = R_p0 + jnp.nancumsum(dz)
-#     return radius
-#
-#
-# @jit
-# def transmission_chord_length(temperature, pressure, g, mmw, R_p0):
-#     """
-#     Distance from the entry point to the exit point of a photon
-#     transmitted through a planetary atmosphere.
-#
-#     The result is an array of the same shape as `pressure`
-#     with transmission chord lengths for chords that reach
-#     minimum altitude at each `pressure`.
-#
-#     Parameters
-#     ----------
-#     temperature : array
-#         Temperature [K].
-#     pressure : array
-#         Pressure [bar].
-#     g : array or float
-#         Surface gravity [cm/s2].
-#     mmw : array or float
-#         Mean molecular weight [AMU].
-#     R_p0 : float
-#         Fiducial planet radius [cm].
-#
-#     Returns
-#     -------
-#     dx : array
-#         Total distance [cm] traveled through an atmosphere
-#         for rays that transmit through to a minimum
-#         altitude of `pressure`.
-#     """
-#     R_0 = radius_at_layer(temperature, pressure, g, mmw, R_p0)
-#
-#     # this "max" should be some number >R_p0, but not precisely
-#     # max(R_0), since that produces dx=0, which leads to nans elsewhere
-#     R_max = 1.5 * R_p0
-#     dx = (
-#         2 * jnp.sqrt(R_max ** 2 - R_0 ** 2)
-#     )
-#     return dx
-
-
 
 @jit
 def scale_height(temperature, g, mmw):
@@ -264,9 +150,9 @@ def transmission_radius(
     # Add two values to the radius vector: zero radius and the bottom of
     # the pressure grid and add corresponding large optical depths to the
     # tau array. This represents the truly opaque deep atmosphere/surface.
-    r = jnp.concatenate([jnp.array([0]), radius])[:, None]
+    r = jnp.concatenate([jnp.array([0, radius.min()]), radius])[:, None]
     tau_padded = jnp.vstack(
-        [tau, jnp.ones((1, tau.shape[1])) * 1e30]
+        [tau, jnp.ones((2, tau.shape[1])) * 1e30]
     )
 
     # The cross-sectional area of a planet as a function of

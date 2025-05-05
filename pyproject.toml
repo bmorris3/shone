@@ -24,6 +24,7 @@ dependencies = [
     "dace-query",
     "xarray",
     "tensorflow-probability",
+    "interpax",
     "pyfastchem",
     "tqdm"
 ]
