@@ -53,6 +53,7 @@ def transmission_radius(
     g, R_p0, opacity,
     vmr, vmr_indices,
     weights_amu,
+    continuum_opacity=0,
     rayleigh_scattering=True,
     absorption=True
 ):
@@ -128,7 +129,7 @@ def transmission_radius(
     tau_scatter = (n_scatter @ sigma_scatter) * dx[:, None]
 
     # compute the optical_depth due to absorption
-    absorption_coeff = (
+    absorption_coeff = continuum_opacity + (
         opacity *                                   # (N_species, N_press, N_wavelength) [cm2/g]
         vmr[:, vmr_indices].T[..., None] *          # (N_species, N_pressures, 1) [unitless]
         n_total[None, :, None] *                    # (1, N_pressures, 1) [1/cm3]

@@ -70,6 +70,9 @@ filterwarnings = [
     "ignore:It appears that you're using a Mac with one of*:UserWarning",
 ]
 
+[tool.setuptools.package-data]
+shone = ["data/*.csv", "data/*.dat"]
+
 [tool.coverage.run]
 omit = [
  "shone/__init*",

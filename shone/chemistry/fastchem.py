@@ -155,16 +155,15 @@ class FastchemWrapper:
         self._input_data.temperature = self.temperature
         self._input_data.pressure = self.pressure
 
-    def vmr(self):
+    def number_densities(self):
         """
-        Volume mixing ratio.
+        Number densities.
 
         Returns
         -------
-        vmr : array-like
-            Volume mixing ratio for each species.
+        n : array-like
+            Number density for each species.
         """
-
         # metallicity does not scale the abundance of H or He:
         skip_indices = [self.fastchem.getElementIndex(element) for element in ['H', 'He']]
 
@@ -191,8 +190,19 @@ class FastchemWrapper:
         self.fastchem.calcDensities(self._input_data, output_data)
         n_densities = np.array(output_data.number_densities)  # [cm-3]
 
+        return n_densities
+
+    def vmr(self):
+        """
+        Volume mixing ratio.
+
+        Returns
+        -------
+        vmr : array-like
+            Volume mixing ratio for each species.
+        """
         gas_number_density = self.pressure * bar_to_dyn_cm2 / (k_B * self.temperature)  # [cm-3]
-        vmr = n_densities / gas_number_density[:, None]
+        vmr = self.number_densities() / gas_number_density[:, None]
 
         return vmr
 
