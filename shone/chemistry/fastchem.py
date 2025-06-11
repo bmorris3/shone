@@ -177,8 +177,8 @@ class FastchemWrapper:
             index_C = self.fastchem.getElementIndex('C')
             index_O = self.fastchem.getElementIndex('O')
 
-            abundances_with_metallicity[index_C] = (
-                abundances_with_metallicity[index_O] * self.c_to_o_ratio
+            abundances_with_metallicity[index_O] = (
+                abundances_with_metallicity[index_C] / self.c_to_o_ratio
             )
 
         self.fastchem.setElementAbundances(abundances_with_metallicity)
@@ -617,7 +617,7 @@ def mass_density(temperature, pressure, vmr, weights):
     n_total = number_density(temperature, pressure)
     rho = jnp.sum(
         vmr * jnp.atleast_1d(n_total)[:, None] *
-        weights,
+        jnp.array(weights),
         axis=1
     )
     return rho

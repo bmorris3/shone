@@ -124,7 +124,7 @@ def free_free_absorption(wavelength, temperature):
         0,
     )
     sigma = 1e-29 * kappa_ff
-    return sigma
+    return sigma.squeeze()
 
 
 @jit

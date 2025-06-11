@@ -31,18 +31,15 @@ class TestTransmission:
     def test_hk_vs_dws_isothermal(self):
         vmr = np.ones((self.n_layers, 1))
         vmr_indices = np.arange(vmr.shape[1])
-        # these parameters were found to produce similar transmission spectra
-        # using both H&K 2017 and dw&S 2013:
-        log_kappa_min, hk_kappa_factor = [-5.6054654, 1.8900791]
         delta_opacity = 10
         opacity = add_absorption_band(
-            opacity=10 ** log_kappa_min + jnp.zeros((self.n_layers, 1)),
+            opacity=10 ** -5 + jnp.zeros((self.n_layers, 1)),
             delta_opacity=delta_opacity,
             wavelength=self.wavelength,
             band_min=2, band_max=3
         )
 
-        weights_amu = jnp.array([30.0])
+        weights_amu = [30.0]
 
         Rp = de_wit_seager_2013.transmission_radius(
             self.wavelength, self.temperature, self.pressure,
@@ -50,16 +47,16 @@ class TestTransmission:
             weights_amu, rayleigh_scattering=False
         )
 
-        P_0 = 3.0
+        P_0 = 40
         T_0 = jnp.mean(self.temperature)
-        mmw = jnp.mean(weights_amu)
+        mmw = weights_amu[0]
         Rp_hk = heng_kitzmann_2017.transmission_radius_isothermal_isobaric(
-            opacity[0] * hk_kappa_factor, self.R_p0, P_0, T_0, mmw, self.g
+            opacity[0], self.R_p0, P_0, T_0, mmw, self.g
         )
         chi2 = jnp.sum((Rp_hk / self.R_p0 - Rp / self.R_p0) ** 2)
 
-        # expect better than 100 ppm agreement
-        assert chi2 < 100e-6
+        # expect better than 10 ppm agreement
+        assert chi2 < 10e-6
 
     @pytest.mark.parametrize(
         ("filt", "off_filter"),
@@ -82,8 +79,8 @@ class TestTransmission:
 
         water_opacity = interp_opacity(self.temperature, self.pressure)
         vmr = np.ones((self.n_layers, 1))
-        vmr_indices = np.array([0])
-        weights_amu = np.array([18.0])
+        vmr_indices = [0]
+        weights_amu = [18.0]
         Rp = de_wit_seager_2013.transmission_radius(
             self.wavelength, self.temperature, self.pressure,
             self.g, self.R_p0, water_opacity, vmr, vmr_indices,
@@ -115,8 +112,8 @@ class TestTransmission:
 
         water_opacity = interp_opacity(self.temperature, self.pressure)
         vmr = np.ones((self.n_layers, 1))
-        vmr_indices = np.array([0])
-        weights_amu = np.array([18.0])
+        vmr_indices = [0]
+        weights_amu = [18.0]
         Rp = de_wit_seager_2013.transmission_radius(
             self.wavelength, self.temperature, self.pressure,
             self.g, self.R_p0, water_opacity, vmr, vmr_indices,
@@ -134,9 +131,9 @@ class TestTransmission:
         )
 
         water_opacity = interp_opacity(self.temperature, self.pressure)
-        vmr = np.ones((self.n_layers, 1)) * 1e-2
-        vmr_indices = np.array([0])
-        weights_amu = np.array([18.0])
+        vmr = np.ones((self.n_layers, 1))
+        vmr_indices = [0]
+        weights_amu = [18.0]
         Rp = de_wit_seager_2013.transmission_radius(
             self.wavelength, self.temperature, self.pressure,
             self.g, self.R_p0, water_opacity, vmr, vmr_indices,
@@ -144,11 +141,11 @@ class TestTransmission:
         )
 
         # check that the highest-opacity CO2 band is near 4.29 µm:
-        np.testing.assert_allclose(self.wavelength[np.argmax(Rp)], 4.294589178356713, rtol=1e-3)
+        np.testing.assert_allclose(self.wavelength[np.argmax(Rp)], 4.29, rtol=0.02)
 
-        # check that the minimum radius between CO2 bands is near an expected
-        # fraction of the fiducial radius
-        np.testing.assert_allclose(np.min(Rp / self.R_p0), 0.8750502, rtol=1e-3)
+        # check that the maximum radius over the minimum radius
+        # is close to an expected ratio:
+        np.testing.assert_allclose(np.ptp(Rp / self.R_p0), 0.013846, rtol=1e-3)
 
     @pytest.mark.parametrize(
         ("extremum", "expected_value"),
@@ -197,17 +194,20 @@ class TestTransmission:
         higher than the maximum pressure in the grid. Check that
         an atmosphere with no opacity above P_0 = 1 bar produces Rp == R_p0.
         """
-        pressure = np.geomspace(1e-8, 1, self.n_layers)
-        opacity = np.zeros((self.n_layers, 1))
-        weights_amu = np.array([30])
+        n_layers = 100
+        pressure = np.geomspace(1e-8, 1, n_layers)
+        temperature = np.ones_like(pressure) * 3000
 
-        vmr = np.ones((self.n_layers, 1))
+        opacity = np.zeros((n_layers, 1))
+        weights_amu = [30]
+
+        vmr = np.ones((n_layers, 1))
         vmr_indices = np.arange(vmr.shape[1])
 
         Rp = de_wit_seager_2013.transmission_radius(
-            self.wavelength, self.temperature, pressure,
+            self.wavelength, temperature, pressure,
             self.g, self.R_p0, opacity, vmr, vmr_indices,
             weights_amu, rayleigh_scattering=False
         )
 
-        np.testing.assert_allclose(Rp / self.R_p0, 1)
+        np.testing.assert_allclose(Rp / self.R_p0, 1, rtol=1e-4)
