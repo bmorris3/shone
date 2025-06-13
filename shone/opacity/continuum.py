@@ -37,26 +37,25 @@ def h_minus_continuum(
     .. [1] `John, T. L. 1988, Astronomy and Astrophysics, 193, 189
            <https://ui.adsabs.harvard.edu/abs/1988A%26A...193..189J/abstract>`_
     """
-    temperature = jnp.atleast_1d(temperature)
-
     electron_pressure = (
         number_density_e * k_B * temperature
     )  # [dyn/cm2]
 
     log_cross_section = jnp.log10(
-        electron_pressure *  # [dyn/cm2]
+        electron_pressure[:, None] *  # [dyn/cm2]
         (
             free_free_absorption(wavelength, temperature) +  # [cm4/dyn]
-            bound_free_absorption(wavelength) * vmr_h1minus  # [cm4/dyn]
+            bound_free_absorption(wavelength)[None, :] *
+            vmr_h1minus[:, None]  # [cm4/dyn]
         )
     )  # [cm2]
 
     log_absorption_coeff = (
         26 + log_cross_section +
-        jnp.log10(number_density_h)
+        jnp.log10(number_density_h[:, None])
     )
 
-    return 10 ** log_absorption_coeff.T  # [1/cm]
+    return 10 ** log_absorption_coeff  # [1/cm]
 
 
 @jit

@@ -161,7 +161,7 @@ def _transmission_radius(
     # ensure that this is a lower triangular.
     # flip result's order along the pressure dimension from high-to-low (increasing `r`)
     # to low-to-high (like `pressure`).
-    dx = jnp.tril(-jnp.diff(x, axis=1))[::-1]
+    dx = 2 * jnp.tril(-jnp.diff(x, axis=1))[::-1]
 
     # compute the optical depth due to scattering from the absorption coefficient
     # for the scattering species:
