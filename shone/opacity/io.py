@@ -1,5 +1,4 @@
 import os
-from functools import partial
 from glob import glob
 import warnings
 
@@ -8,8 +7,7 @@ import xarray as xr
 from astropy.table import Table
 
 from jax import numpy as jnp, jit, vmap
-from tensorflow_probability.substrates.jax.math import batch_interp_rectilinear_nd_grid as nd_interp
-
+from interpax import Interpolator3D
 from shone.config import shone_dir, tiny_archives_dir, float_dtype
 from shone.chemistry import isotopologue_to_species
 from shone.opacity.binning import bin_opacity
@@ -56,22 +54,24 @@ class Opacity:
             float_dtype(self.grid.wavelength.to_numpy()),
         )
 
-        @partial(jit, static_argnames=('grid',))
-        def interp(
+        interp = Interpolator3D(
+            x_grid_points[0],
+            x_grid_points[1],
+            x_grid_points[2],
+            float_dtype(self.grid.to_numpy()),
+            method='linear',
+            extrap=0.0,
+        )
+
+        @jit
+        def _interp(
                 interp_wavelength, interp_temperature, interp_pressure,
-                grid=self.grid.to_numpy()
         ):
-            interp_point = jnp.column_stack([
+
+            return interp(
                 jnp.broadcast_to(interp_temperature, interp_wavelength.shape),
                 jnp.broadcast_to(interp_pressure, interp_wavelength.shape),
                 interp_wavelength,
-            ]).astype(float_dtype)
-
-            return nd_interp(
-                interp_point,
-                x_grid_points,
-                grid,
-                axis=0
             )
 
         @jit
@@ -80,7 +80,7 @@ class Opacity:
             pressure = jnp.atleast_1d(pressure)
             return jnp.squeeze(
                 vmap(
-                    lambda t, p: interp(wavelength, t, p)
+                    lambda t, p: _interp(wavelength, t, p)
                 )(temperature, pressure)
             )
 
@@ -107,6 +107,18 @@ class Opacity:
             (self.grid.temperature <= temperature.max())
         )
 
+        # catch isothermal or out-of-bounds cases:
+        if crop_temperature.sum() < 2:
+            crop_temperature = np.zeros(self.grid.temperature.size).astype(bool)
+
+            if temperature.min() > self.grid.temperature.max():
+                crop_temperature[:2] = True
+            elif temperature.max() < self.grid.temperature.min():
+                crop_temperature[-2:] = True
+            else:
+                idx = np.searchsorted(self.grid.temperature.to_numpy(), temperature[0])
+                crop_temperature[idx - 1:idx + 1] = True
+
         if self.grid.pressure.size == 2:
             # handle atoms:
             crop_pressure = np.array([True, True])
@@ -127,13 +139,18 @@ class Opacity:
         # reshape from shape (N_press, N_temp, N_wavelength) to
         # shape (N_press * N_temp, N_wavelength)
         cropped_grid_reshaped = cropped_grid_numpy.reshape((-1, cropped_grid_numpy.shape[-1]))
-        cropped_grid_wavelength = cropped_grid.wavelength.to_numpy()
+        cropped_grid_wavelength = float_dtype(cropped_grid.wavelength.to_numpy())
 
         rebinned_grid = vmap(
             lambda op: bin_opacity(
                 wavelength, cropped_grid_wavelength, op
             )
         )(cropped_grid_reshaped)
+        wl_in_bounds = (
+            (wavelength >= cropped_grid_wavelength.min()) &
+            (wavelength <= cropped_grid_wavelength.max())
+        ) & ~jnp.isnan(rebinned_grid)
+        rebinned_grid = jnp.where(wl_in_bounds, rebinned_grid, 1e-30)
 
         rebinned_grid_reshaped = rebinned_grid.reshape(
             *cropped_grid_numpy.shape[:2], wavelength.size
@@ -144,34 +161,35 @@ class Opacity:
             float_dtype(cropped_grid.pressure.to_numpy()),
         )
 
-        @partial(jit, static_argnames=('grid',))
-        def interp(
-                interp_temperature, interp_pressure,
-                grid=rebinned_grid_reshaped
-        ):
-            interp_point = jnp.column_stack([
-                interp_temperature,
-                interp_pressure,
-            ]).astype(float_dtype)
+        x_grid_limits = jnp.array([
+            [np.nanmin(grid_points), np.nanmax(grid_points)]
+            for grid_points in x_grid_points
+        ])
 
-            return nd_interp(
-                interp_point,
-                x_grid_points,
-                grid,
-                axis=0
-            )
+        interp = Interpolator3D(
+            float_dtype(cropped_grid.temperature.to_numpy()),
+            float_dtype(cropped_grid.pressure.to_numpy()),
+            float_dtype(wavelength),
+            float_dtype(rebinned_grid_reshaped),
+            method='linear',
+            extrap=0.0,
+        )
 
         @jit
-        def interp_vmap(temperature, pressure):
-            temperature = jnp.atleast_1d(temperature)
-            pressure = jnp.atleast_1d(pressure)
-            return jnp.squeeze(
-                vmap(
-                    lambda t, p: interp(t, p)
-                )(temperature, pressure)
+        def interp_clipped(interp_temperature, interp_pressure, wavelength=wavelength):
+            temperature = jnp.clip(
+                jnp.atleast_1d(interp_temperature),
+                x_grid_limits[0][0], x_grid_limits[0][1]
             )
+            pressure = jnp.clip(
+                jnp.atleast_1d(interp_pressure),
+                x_grid_limits[1][0], x_grid_limits[1][0]
+            )
+            return vmap(lambda t, p: interp(t, p, wavelength))(
+                temperature, pressure
+            ).squeeze()
 
-        return interp_vmap
+        return interp_clipped
 
     @classmethod
     def get_available_species(self, shone_directory=None):
