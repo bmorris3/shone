@@ -34,7 +34,6 @@ def v_orb(P,M,e=0,theta=0,m=0):
         The planet's orbital velocity in km/s.
 
     """
-    import numpy as np
     from jax import numpy as jnp
     import astropy.units as u
     import astropy.constants as const
@@ -48,12 +47,41 @@ def v_orb(P,M,e=0,theta=0,m=0):
     #We need Kepler's third law to convert M's to a's or P's:
     # a^3 / P^2 = G(M+m)/(4pi^2)
 
-    GM = const.G * (M+m)*u.M_sun
+    GM = const.G.value * (M+m)*const.M_sun.value
 
-    a = (GM * (P*u.d)**2 / 4 / jnp.pi**2)**(1/3)
+    a = (GM * (P*1*u.d.to('s'))**2 / 4 / jnp.pi**2)**(1/3)
 
     r = a*(1-e**2) / (1+e*jnp.cos(theta))
 
-    v = (GM * ( 2/r - 1/a))**(1/2)
+    v = (GM * ( 2/r - 1/a))**(1/2)  / 1000 #Convert to km/s
 
-    return(v.to('km/s').value)
+    return(v)
+
+
+
+def doppler_factor(v):
+    from jax import numpy as jnp
+    import astropy.units as u
+    import astropy.constants as const
+    """
+    This calculates the relativistic doppler factor given a 
+    radial velocity in km/s.
+
+
+    Parameters
+    ----------
+    v : float, array-like
+        Radial velocity in km/s.
+
+    Returns
+    -------
+    f : same as v
+        The doppler factor to be multiplying the wavelength with.
+
+    """
+    c =const.c.to('km/s').value
+    beta = v / c
+    f = jnp.sqrt((1+beta)/(1-beta))
+    return(f)
+
+
