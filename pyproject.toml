@@ -16,8 +16,7 @@ authors = [
   { name = "Brett M. Morris, Jens Hoeijmakers", email = "morrisbrettm@gmail.com" },
 ]
 dependencies = [
-    "jax[cpu]<=0.4.29",
-    "jaxlib<=0.4.29",
+    "jax[cpu]",
     "jaxoplanet",
     "specutils",
     "periodictable",
